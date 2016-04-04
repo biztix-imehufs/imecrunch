@@ -9,8 +9,23 @@ import android.support.v7.widget.Toolbar;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.Toast;
 
-public class MainActivity extends AppCompatActivity {
+import com.microsoft.band.BandClient;
+import com.microsoft.band.BandClientManager;
+import com.microsoft.band.BandException;
+import com.microsoft.band.BandInfo;
+import com.microsoft.band.BandPendingResult;
+import com.microsoft.band.ConnectionState;
+
+public class MainActivity extends AppCompatActivity implements Runnable {
+    public static BandInfo[] pairedBands;
+    private BandClient bandClient;
+    private BandPendingResult<ConnectionState> pendingResult;
+
+    public static String fwVersion;
+    public static String hwVersion;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -19,14 +34,20 @@ public class MainActivity extends AppCompatActivity {
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-//        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-//        fab.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View view) {
-//                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-//                        .setAction("Action", null).show();
-//            }
-//        });
+        pairedBands = BandClientManager.getInstance().getPairedBands();
+        bandClient = BandClientManager.getInstance().create(getBaseContext(), pairedBands[0]);
+
+        if (pairedBands.length == 0) {
+            Toast.makeText(getBaseContext(), "No paired bands", Toast.LENGTH_SHORT).show();
+        } else {
+            /**
+             * Code for starting sensor subscribing
+             */
+            pendingResult = bandClient.connect();
+            Thread connectionThread = new Thread(this);
+            connectionThread.start();
+
+        }
     }
 
     @Override
@@ -47,9 +68,38 @@ public class MainActivity extends AppCompatActivity {
         if (id == R.id.action_settings) {
             return true;
         } else if(id == R.id.action_info) {
-            startActivity(new Intent(getBaseContext(), DeviceInfoActivity.class));
+            if (pairedBands.length > 0) {
+                startActivity(new Intent(getBaseContext(), DeviceInfoActivity.class));
+            } else {
+                Toast.makeText(getBaseContext(), "No paired bands", Toast.LENGTH_SHORT).show();
+            }
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void run() {
+        try {
+            ConnectionState state = pendingResult.await();
+
+            if (state == ConnectionState.CONNECTED) {
+                // on success
+                fwVersion = bandClient.getFirmwareVersion().await();
+                hwVersion = bandClient.getHardwareVersion().await();
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(getBaseContext(), "Connected to band", Toast.LENGTH_SHORT).show();
+                    }
+                });
+            } else {
+                // on failed
+            }
+        }catch (InterruptedException ex) {
+            // handle InterruptedException
+        }catch (BandException ex) {
+            // handle BandException
+        }
     }
 }

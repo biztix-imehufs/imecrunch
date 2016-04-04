@@ -14,8 +14,7 @@ import com.microsoft.band.BandIOException;
 import com.microsoft.band.ConnectionState;
 
 public class DeviceInfoActivity extends AppCompatActivity {
-    public static BandInfo[] pairedBands;
-    BandClient bandClient;
+
 
     TextView textBandInformation;
     @Override
@@ -24,15 +23,9 @@ public class DeviceInfoActivity extends AppCompatActivity {
         setContentView(R.layout.activity_device_info);
         getSupportActionBar().hide();
 
-        pairedBands = BandClientManager.getInstance().getPairedBands();
-        bandClient = BandClientManager.getInstance().create(getBaseContext(), pairedBands[0]);
-
         textBandInformation = (TextView) findViewById(R.id.text_band_information);
+        textBandInformation.setText("Name: " + MainActivity.pairedBands[0].getName() + "\n" +
+            "Firmware: " + MainActivity.fwVersion + "\n" + "Hardware: " + MainActivity.hwVersion);
 
-        if (pairedBands.length > 0) {
-            textBandInformation.setText(pairedBands[0].getName());
-        } else {
-            Toast.makeText(getBaseContext(), "No paired bands", Toast.LENGTH_SHORT).show();
-        }
     }
 }
