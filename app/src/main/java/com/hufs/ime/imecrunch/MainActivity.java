@@ -1,53 +1,193 @@
 package com.hufs.ime.imecrunch;
 
 import android.content.Intent;
+import android.os.AsyncTask;
 import android.os.Bundle;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.microsoft.band.BandClient;
 import com.microsoft.band.BandClientManager;
 import com.microsoft.band.BandException;
+import com.microsoft.band.BandIOException;
 import com.microsoft.band.BandInfo;
 import com.microsoft.band.BandPendingResult;
 import com.microsoft.band.ConnectionState;
 
-public class MainActivity extends AppCompatActivity implements Runnable {
+import com.microsoft.band.UserConsent;
+import com.microsoft.band.sensors.*;
+
+public class MainActivity extends AppCompatActivity implements HeartRateConsentListener {
     public static BandInfo[] pairedBands;
     private BandClient bandClient;
     private BandPendingResult<ConnectionState> pendingResult;
 
+    private TextView textSensors;
+    private TextView textGyro;
+    private TextView textHeart;
+
     public static String fwVersion;
     public static String hwVersion;
+
+    private BandHeartRateEventListener hearListener;
+    private HeartRateConsentListener heartConsentListener;
+    private BandAccelerometerEventListener accelerometerListener;
+    private BandGsrEventListener gsrListener;
+    private BandGyroscopeEventListener gyroListener;
+
+    private class AccelerometerSubscriptionTask extends AsyncTask<Void, Void, Void> {
+        @Override
+        protected Void doInBackground(Void[] params) {
+            try {
+                if (getConnectedBandClient()) {
+                    appendToUI("Band is connected.\n");
+                    bandClient.getSensorManager().registerAccelerometerEventListener(accelerometerListener, SampleRate.MS128);
+                } else {
+                    appendToUI("Band isn't connected. Please make sure bluetooth is on and the band is in range.\n");
+                }
+            } catch (BandException e) {
+                String exceptionMessage="";
+                switch (e.getErrorType()) {
+                    case UNSUPPORTED_SDK_VERSION_ERROR:
+                        exceptionMessage = "Microsoft Health BandService doesn't support your SDK Version. Please update to latest SDK.\n";
+                        break;
+                    case SERVICE_ERROR:
+                        exceptionMessage = "Microsoft Health BandService is not available. Please make sure Microsoft Health is installed and that you have the correct permissions.\n";
+                        break;
+                    default:
+                        exceptionMessage = "Unknown error occured: " + e.getMessage() + "\n";
+                        break;
+                }
+                appendToUI(exceptionMessage);
+
+            } catch (Exception e) {
+                appendToUI(e.getMessage());
+            }
+            return null;
+        }
+    }
+
+    private boolean getConnectedBandClient() throws InterruptedException, BandException {
+        if (bandClient == null) {
+            BandInfo[] devices = BandClientManager.getInstance().getPairedBands();
+            if (devices.length == 0) {
+                appendToUI("Band isn't paired with your phone.\n");
+                return false;
+            }
+            bandClient = BandClientManager.getInstance().create(getBaseContext(), devices[0]);
+        } else if (ConnectionState.CONNECTED == bandClient.getConnectionState()) {
+            if (bandClient.getSensorManager().getCurrentHeartRateConsent() == UserConsent.GRANTED) {
+
+            }else {
+                bandClient.getSensorManager().requestHeartRateConsent(this, this);
+            }
+            return true;
+        }
+
+        appendToUI("Band is connecting...\n");
+        setGyroText("Connecting...");
+        return ConnectionState.CONNECTED == bandClient.connect().await();
+    }
+
+    private void appendToUI(final String string) {
+        this.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                textSensors.setText(string);
+            }
+        });
+    }
+
+    private void setGyroText(final String n){
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                textGyro.setText(n);
+            }
+        });
+    }
+
+    private void setHeartText(final String n){
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                textHeart.setText(n);
+            }
+        });
+    }
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
+        textSensors = (TextView) findViewById(R.id.text_sensor);
+        textGyro = (TextView)findViewById(R.id.text_gyro);
+        textHeart = (TextView)findViewById(R.id.text_heart);
+
         pairedBands = BandClientManager.getInstance().getPairedBands();
-        bandClient = BandClientManager.getInstance().create(getBaseContext(), pairedBands[0]);
 
-        if (pairedBands.length == 0) {
-            Toast.makeText(getBaseContext(), "No paired bands", Toast.LENGTH_SHORT).show();
-        } else {
-            /**
-             * Code for starting sensor subscribing
-             */
-            pendingResult = bandClient.connect();
-            Thread connectionThread = new Thread(this);
-            connectionThread.start();
+        accelerometerListener = new BandAccelerometerEventListener() {
+            @Override
+            public void onBandAccelerometerChanged(BandAccelerometerEvent event) {
+                appendToUI(String.format(" X = %.3f \n Y = %.3f\n Z = %.3f", event.getAccelerationX(),
+                        event.getAccelerationY(), event.getAccelerationZ()));
+            }
+        };
 
-        }
+        gsrListener = new BandGsrEventListener() {
+            @Override
+            public void onBandGsrChanged(BandGsrEvent bandGsrEvent) {
+                appendToUI(String.valueOf(bandGsrEvent.getResistance()));
+            }
+        };
+
+        gyroListener = new BandGyroscopeEventListener() {
+            @Override
+            public void onBandGyroscopeChanged(BandGyroscopeEvent bandGyroscopeEvent) {
+                setGyroText("X accel: " + bandGyroscopeEvent.getAccelerationX() + "\n" +
+                        "Y accel: " + bandGyroscopeEvent.getAccelerationY() + "\n" +
+                        "Z accel: " + bandGyroscopeEvent.getAccelerationZ() + "\n\n" +
+                        "X angular: " + bandGyroscopeEvent.getAngularVelocityX() + "\n" +
+                        "Y angular: " + bandGyroscopeEvent.getAngularVelocityY() + "\n" +
+                        "Z angular: " + bandGyroscopeEvent.getAngularVelocityZ() + "\n\n");
+            }
+        };
+
+        hearListener = new BandHeartRateEventListener() {
+            @Override
+            public void onBandHeartRateChanged(BandHeartRateEvent bandHeartRateEvent) {
+                setHeartText("Heart Rate: " + bandHeartRateEvent.getHeartRate() + "\n" +
+                "Heart Quality: " + bandHeartRateEvent.getQuality().name());
+            }
+        };
+        heartConsentListener = new HeartRateConsentListener() {
+            @Override
+            public void userAccepted(boolean b) {
+                if (b) {
+
+                }
+            }
+        };
+
+        //new AccelerometerSubscriptionTask().execute();
+        new GsrSubscriptionTask().execute();
+        new GyroSubscriptionTask().execute();
+
+        // sensors which need user consent
+        new HrSubscriptionTask().execute();
+    }
+
+    public void userAccepted(boolean consentGiven) {
+
     }
 
     @Override
@@ -67,7 +207,7 @@ public class MainActivity extends AppCompatActivity implements Runnable {
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
             return true;
-        } else if(id == R.id.action_info) {
+        } else if (id == R.id.action_info) {
             if (pairedBands.length > 0) {
                 startActivity(new Intent(getBaseContext(), DeviceInfoActivity.class));
             } else {
@@ -79,27 +219,73 @@ public class MainActivity extends AppCompatActivity implements Runnable {
     }
 
     @Override
-    public void run() {
-        try {
-            ConnectionState state = pendingResult.await();
-
-            if (state == ConnectionState.CONNECTED) {
-                // on success
-                fwVersion = bandClient.getFirmwareVersion().await();
-                hwVersion = bandClient.getHardwareVersion().await();
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        Toast.makeText(getBaseContext(), "Connected to band", Toast.LENGTH_SHORT).show();
-                    }
-                });
-            } else {
-                // on failed
+    protected void onPause() {
+        super.onPause();
+        if (bandClient != null) {
+            try {
+                bandClient.getSensorManager().unregisterAccelerometerEventListener(accelerometerListener);
+            } catch (BandIOException e) {
+                appendToUI(e.getMessage());
             }
-        }catch (InterruptedException ex) {
-            // handle InterruptedException
-        }catch (BandException ex) {
-            // handle BandException
+        }
+    }
+
+    protected void onDestroy() {
+        if (bandClient != null) {
+            try {
+                bandClient.disconnect().await();
+            } catch (InterruptedException e) {
+                // Do nothing as this is happening during destroy
+            } catch (BandException e) {
+                // Do nothing as this is happening during destroy
+            }
+        }
+        super.onDestroy();
+    }
+
+    private class GsrSubscriptionTask extends AsyncTask<Void, Void, Void> {
+        @Override
+        protected Void doInBackground(Void[] params) {
+            try {
+                if (getConnectedBandClient()) {
+                    bandClient.getSensorManager().registerGsrEventListener(gsrListener, GsrSampleRate.MS5000);
+                } else {
+                    appendToUI("Band isn't connected. Please make sure bluetooth is on and the band is in range.\n");
+                }
+            } catch (BandException e) {
+            } catch (Exception e) {
+            }
+            return null;
+        }
+    }
+
+    private class GyroSubscriptionTask extends AsyncTask<Void, Void, Void> {
+        @Override
+        protected Void doInBackground(Void[] params) {
+            try {
+                if (getConnectedBandClient()) {
+                    bandClient.getSensorManager().registerGyroscopeEventListener(gyroListener, SampleRate.MS128);
+                } else {
+                }
+            } catch (BandException e) {
+            } catch (Exception e) {
+            }
+            return null;
+        }
+    }
+
+    private class HrSubscriptionTask  extends AsyncTask<Void, Void, Void> {
+        @Override
+        protected Void doInBackground(Void[] params) {
+            try {
+                if (getConnectedBandClient()) {
+                    bandClient.getSensorManager().registerHeartRateEventListener(hearListener);
+                } else {
+                }
+            } catch (BandException e) {
+            } catch (Exception e) {
+            }
+            return null;
         }
     }
 }
