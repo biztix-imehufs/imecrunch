@@ -3,6 +3,7 @@ package com.hufs.ime.imecrunch;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.support.v4.content.res.TypedArrayUtils;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
@@ -21,11 +22,19 @@ import com.microsoft.band.ConnectionState;
 import com.microsoft.band.UserConsent;
 import com.microsoft.band.sensors.*;
 
+import org.apache.commons.lang.ArrayUtils;
+
+import java.util.ArrayList;
+import java.util.Timer;
+import java.util.TimerTask;
+
+
 public class MainActivity extends AppCompatActivity implements HeartRateConsentListener {
     public static BandInfo[] pairedBands;
     private BandClient bandClient;
     private BandPendingResult<ConnectionState> pendingResult;
 
+    private TextView textStatus;
     private TextView textSensors;
     private TextView textGyro;
     private TextView textHeart;
@@ -38,6 +47,11 @@ public class MainActivity extends AppCompatActivity implements HeartRateConsentL
     private BandAccelerometerEventListener accelerometerListener;
     private BandGsrEventListener gsrListener;
     private BandGyroscopeEventListener gyroListener;
+
+    private ArrayList<Double> gyroAccelXList = new ArrayList<>();
+    private ArrayList<Double> gyroAngularXList = new ArrayList<>();
+
+    public int counter = 1;
 
     private class AccelerometerSubscriptionTask extends AsyncTask<Void, Void, Void> {
         @Override
@@ -129,11 +143,29 @@ public class MainActivity extends AppCompatActivity implements HeartRateConsentL
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
+        textStatus = (TextView) findViewById(R.id.txt_status);
         textSensors = (TextView) findViewById(R.id.text_sensor);
         textGyro = (TextView)findViewById(R.id.text_gyro);
         textHeart = (TextView)findViewById(R.id.text_heart);
 
         pairedBands = BandClientManager.getInstance().getPairedBands();
+
+        // start timer counter
+        new Timer().scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                counter++;
+                if(counter >= 11) {
+                    counter = 1;
+                }
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        //textStatus.setText(""+counter);
+                    }
+                });
+            }
+        }, 0, 500);
 
         accelerometerListener = new BandAccelerometerEventListener() {
             @Override
@@ -153,12 +185,35 @@ public class MainActivity extends AppCompatActivity implements HeartRateConsentL
         gyroListener = new BandGyroscopeEventListener() {
             @Override
             public void onBandGyroscopeChanged(BandGyroscopeEvent bandGyroscopeEvent) {
+
+                gyroAngularXList.add(new Double(bandGyroscopeEvent.getAngularVelocityX()));
+
+                if (counter == 10) {
+                    Double[] dGyroAccelX = gyroAccelXList.toArray(new Double[gyroAccelXList.size()]);
+                    Double[] dGyroAngularX = gyroAngularXList.toArray(new Double[gyroAngularXList.size()]);
+                    final double gyroAccelXMean = StdStats.mean(ArrayUtils.toPrimitive(dGyroAngularX));
+
+                    setGyroText(String.valueOf(gyroAccelXMean) + "\n" + gyroAngularXList.size());
+                    gyroAngularXList.clear();
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            if (Math.abs(gyroAccelXMean) > 10) {
+                                textStatus.setText("Status: Moving");
+                            } else {
+                                textStatus.setText("Status: Stay still");
+                            }
+                        }
+                    });
+                }
+                /*
                 setGyroText("X accel: " + bandGyroscopeEvent.getAccelerationX() + "\n" +
                         "Y accel: " + bandGyroscopeEvent.getAccelerationY() + "\n" +
                         "Z accel: " + bandGyroscopeEvent.getAccelerationZ() + "\n\n" +
                         "X angular: " + bandGyroscopeEvent.getAngularVelocityX() + "\n" +
                         "Y angular: " + bandGyroscopeEvent.getAngularVelocityY() + "\n" +
                         "Z angular: " + bandGyroscopeEvent.getAngularVelocityZ() + "\n\n");
+                        */
             }
         };
 
