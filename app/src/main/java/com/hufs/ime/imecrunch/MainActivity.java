@@ -1,16 +1,24 @@
 package com.hufs.ime.imecrunch;
 
+import android.Manifest;
+import android.app.Activity;
+import android.app.VoiceInteractor;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.support.v4.content.res.TypedArrayUtils;
+import android.support.annotation.NonNull;
+import android.support.design.widget.FloatingActionButton;
+import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.github.clans.fab.FloatingActionMenu;
 import com.microsoft.band.BandClient;
 import com.microsoft.band.BandClientManager;
 import com.microsoft.band.BandException;
@@ -34,10 +42,19 @@ public class MainActivity extends AppCompatActivity implements HeartRateConsentL
     private BandClient bandClient;
     private BandPendingResult<ConnectionState> pendingResult;
 
+    // Storage Permissions
+    private static final int REQUEST_EXTERNAL_STORAGE = 1;
+    private static String[] PERMISSIONS_STORAGE = {
+            Manifest.permission.READ_EXTERNAL_STORAGE,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE
+    };
+
     private TextView textStatus;
     private TextView textSensors;
     private TextView textGyro;
     private TextView textHeart;
+    private com.github.clans.fab.FloatingActionButton btnWalking,  btnRunning;
+    private FloatingActionMenu menu;
 
     public static String fwVersion;
     public static String hwVersion;
@@ -48,42 +65,18 @@ public class MainActivity extends AppCompatActivity implements HeartRateConsentL
     private BandGsrEventListener gsrListener;
     private BandGyroscopeEventListener gyroListener;
 
+    private ArrayList<Double> accelXList = new ArrayList<>();
+    private ArrayList<Double> accelYList = new ArrayList<>();
+    private ArrayList<Double> accelZList = new ArrayList<>();
+
     private ArrayList<Double> gyroAccelXList = new ArrayList<>();
     private ArrayList<Double> gyroAngularXList = new ArrayList<>();
 
+    public static double gyroAccelX;
+
     public int counter = 1;
 
-    private class AccelerometerSubscriptionTask extends AsyncTask<Void, Void, Void> {
-        @Override
-        protected Void doInBackground(Void[] params) {
-            try {
-                if (getConnectedBandClient()) {
-                    appendToUI("Band is connected.\n");
-                    bandClient.getSensorManager().registerAccelerometerEventListener(accelerometerListener, SampleRate.MS128);
-                } else {
-                    appendToUI("Band isn't connected. Please make sure bluetooth is on and the band is in range.\n");
-                }
-            } catch (BandException e) {
-                String exceptionMessage="";
-                switch (e.getErrorType()) {
-                    case UNSUPPORTED_SDK_VERSION_ERROR:
-                        exceptionMessage = "Microsoft Health BandService doesn't support your SDK Version. Please update to latest SDK.\n";
-                        break;
-                    case SERVICE_ERROR:
-                        exceptionMessage = "Microsoft Health BandService is not available. Please make sure Microsoft Health is installed and that you have the correct permissions.\n";
-                        break;
-                    default:
-                        exceptionMessage = "Unknown error occured: " + e.getMessage() + "\n";
-                        break;
-                }
-                appendToUI(exceptionMessage);
 
-            } catch (Exception e) {
-                appendToUI(e.getMessage());
-            }
-            return null;
-        }
-    }
 
     private boolean getConnectedBandClient() throws InterruptedException, BandException {
         if (bandClient == null) {
@@ -134,6 +127,31 @@ public class MainActivity extends AppCompatActivity implements HeartRateConsentL
         });
     }
 
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+    }
+
+    /**
+     * Checks if the app has permission to write to device storage
+     *
+     * If the app does not has permission then the user will be prompted to grant permissions
+     *
+     * @param activity
+     */
+    public static void verifyStoragePermissions(Activity activity) {
+        // Check if we have write permission
+        int permission = ActivityCompat.checkSelfPermission(activity, Manifest.permission.WRITE_EXTERNAL_STORAGE);
+
+        if (permission != PackageManager.PERMISSION_GRANTED) {
+            // We don't have permission so prompt the user
+            ActivityCompat.requestPermissions(
+                    activity,
+                    PERMISSIONS_STORAGE,
+                    REQUEST_EXTERNAL_STORAGE
+            );
+        }
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -150,6 +168,8 @@ public class MainActivity extends AppCompatActivity implements HeartRateConsentL
 
         pairedBands = BandClientManager.getInstance().getPairedBands();
 
+        verifyStoragePermissions(this);
+
         // start timer counter
         new Timer().scheduleAtFixedRate(new TimerTask() {
             @Override
@@ -165,13 +185,35 @@ public class MainActivity extends AppCompatActivity implements HeartRateConsentL
                     }
                 });
             }
-        }, 0, 500);
+        }, 0, 100);
 
         accelerometerListener = new BandAccelerometerEventListener() {
             @Override
             public void onBandAccelerometerChanged(BandAccelerometerEvent event) {
-                appendToUI(String.format(" X = %.3f \n Y = %.3f\n Z = %.3f", event.getAccelerationX(),
-                        event.getAccelerationY(), event.getAccelerationZ()));
+                accelXList.add(new Double(event.getAccelerationX()));
+                accelYList.add(new Double(event.getAccelerationY()));
+                accelZList.add(new Double(event.getAccelerationZ()));
+                if (counter == 10) {
+                    Double[] dAccelX = accelXList.toArray(new Double[accelXList.size()]);
+                    Double[] dAccelY = accelYList.toArray(new Double[accelYList.size()]);
+                    Double[] dAccelZ = accelZList.toArray(new Double[accelZList.size()]);
+
+                    double accelXMean = StdStats.mean(ArrayUtils.toPrimitive(dAccelX));
+                    double accelYMean = StdStats.mean(ArrayUtils.toPrimitive(dAccelY));
+                    double accelZMean = StdStats.mean(ArrayUtils.toPrimitive(dAccelZ));
+
+                    // update public static band info
+                    BandPublicInfo.currentAccelerometer[0] = accelXMean;
+                    BandPublicInfo.currentAccelerometer[1] = accelYMean;
+                    BandPublicInfo.currentAccelerometer[2] = accelZMean;
+
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            textStatus.setText(""+BandPublicInfo.currentAccelerometer[0]);
+                        }
+                    });
+                }
             }
         };
 
@@ -199,9 +241,9 @@ public class MainActivity extends AppCompatActivity implements HeartRateConsentL
                         @Override
                         public void run() {
                             if (Math.abs(gyroAccelXMean) > 10) {
-                                textStatus.setText("Status: Moving");
+                                //textStatus.setText("Status: Moving");
                             } else {
-                                textStatus.setText("Status: Stay still");
+                                //textStatus.setText("Status: Stay still");
                             }
                         }
                     });
@@ -233,7 +275,21 @@ public class MainActivity extends AppCompatActivity implements HeartRateConsentL
             }
         };
 
-        //new AccelerometerSubscriptionTask().execute();
+        menu = (FloatingActionMenu) findViewById(R.id.fab_menu);
+        btnWalking = (com.github.clans.fab.FloatingActionButton) findViewById(R.id.fab_walking);
+        btnWalking.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent i = new Intent(MainActivity.this, StartLabelingActivity.class);
+                i.putExtra("LABEL", "WALKING");
+                startActivity(i);
+                menu.close(true);
+            }
+        });
+
+
+
+        new AccelerometerSubscriptionTask().execute();
         new GsrSubscriptionTask().execute();
         new GyroSubscriptionTask().execute();
 
@@ -296,6 +352,21 @@ public class MainActivity extends AppCompatActivity implements HeartRateConsentL
             }
         }
         super.onDestroy();
+    }
+
+    private class AccelerometerSubscriptionTask extends AsyncTask<Void, Void, Void> {
+        @Override
+        protected Void doInBackground(Void[] params) {
+            try {
+                if (getConnectedBandClient()) {
+                    bandClient.getSensorManager().registerAccelerometerEventListener(accelerometerListener, SampleRate.MS128);
+                } else {
+                }
+            } catch (BandException e) {
+            } catch (Exception e) {
+            }
+            return null;
+        }
     }
 
     private class GsrSubscriptionTask extends AsyncTask<Void, Void, Void> {
