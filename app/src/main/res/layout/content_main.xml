@@ -33,6 +33,11 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
 
+            <!--<ListView-->
+                <!--android:id="@+id/list_view_sensors"-->
+                <!--android:layout_width="fill_parent"-->
+                <!--android:layout_height="wrap_content"></ListView>-->
+
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -127,6 +132,14 @@
             app:fab_colorPressed="#E75043"
             fab:fab_label="Running"
             android:id="@+id/fab_running" />
+        <com.github.clans.fab.FloatingActionButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/ic_hourglass_empty_white_24dp"
+            app:fab_colorNormal="#DA4336"
+            app:fab_colorPressed="#E75043"
+            fab:fab_label="Idle"
+            android:id="@+id/fab_idle" />
     </com.github.clans.fab.FloatingActionMenu>
 
     <!--<com.melnykov.fab.FloatingActionButton-->

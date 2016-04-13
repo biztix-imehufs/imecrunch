@@ -70,39 +70,42 @@ public class StartLabelingActivity extends AppCompatActivity {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
+                        textLabelType.setText(String.valueOf(BandPublicInfo.getCurrentAccelerometer()[0]));
                         if (clicked) {
 //                            textTimer.setText("Elapsed: " + ((float)(counter)/10) + " seconds");
-                            textTimer.setText("X: " + BandPublicInfo.currentAccelerometer[0]);
-
-                            // write csv over time
-                            if (f.exists() && !f.isDirectory()){
-                                try {
-                                    fileWriter = new FileWriter(filePath,   true);
-                                    csvWriter = new CSVWriter(fileWriter);
-                                } catch (Exception e) {
-                                    e.printStackTrace();
-                                }
-                            } else {
-                                try {
-                                    csvWriter = new CSVWriter(new FileWriter(filePath));
-                                } catch (Exception e) {
-                                    e.printStackTrace();
-                                }
-                            }
-
-                            String[] row = {String.valueOf(BandPublicInfo.currentAccelerometer[0]), String.valueOf(BandPublicInfo.currentAccelerometer[1]), String.valueOf(BandPublicInfo.currentAccelerometer[2])};
-//                            Toast.makeText(getBaseContext(), ""+BandPublicInfo.currentAccelerometer[0], Toast.LENGTH_SHORT).show();
-                            csvWriter.writeNext(row);
-                            try {
-                                csvWriter.close();
-                            }catch (Exception e) {
-                                e.printStackTrace();
-                            }
-
-                            counter++;
+//                            textTimer.setText("X: " + BandPublicInfo.currentAccelerometer[0]);
+                            textTimer.setText("X: " + BandPublicInfo.getCurrentAccelerometer()[0]);
                         }
                     }
                 });
+
+                // write csv over time
+                if (f.exists() && !f.isDirectory()){
+                    try {
+                        fileWriter = new FileWriter(filePath,   true);
+                        csvWriter = new CSVWriter(fileWriter);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                } else {
+                    try {
+                        csvWriter = new CSVWriter(new FileWriter(filePath));
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+
+//                            String[] row = {String.valueOf(BandPublicInfo.currentAccelerometer[0]), String.valueOf(BandPublicInfo.currentAccelerometer[1]), String.valueOf(BandPublicInfo.currentAccelerometer[2])};
+                String[] row = {String.valueOf(BandPublicInfo.getCurrentAccelerometer()[0]), String.valueOf(BandPublicInfo.getCurrentAccelerometer()[1]), String.valueOf(BandPublicInfo.getCurrentAccelerometer()[2])};
+//                            Toast.makeText(getBaseContext(), ""+BandPublicInfo.currentAccelerometer[0], Toast.LENGTH_SHORT).show();
+                csvWriter.writeNext(row);
+                try {
+                    csvWriter.close();
+                }catch (Exception e) {
+                    e.printStackTrace();
+                }
+
+                counter++;
 
             }
         };

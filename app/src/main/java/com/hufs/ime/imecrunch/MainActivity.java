@@ -11,9 +11,12 @@ import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.ActionMenuView;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.SurfaceHolder;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -29,9 +32,12 @@ import com.microsoft.band.ConnectionState;
 
 import com.microsoft.band.UserConsent;
 import com.microsoft.band.sensors.*;
+import com.opencsv.CSVWriter;
 
 import org.apache.commons.lang.ArrayUtils;
 
+import java.io.File;
+import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -41,6 +47,8 @@ public class MainActivity extends AppCompatActivity implements HeartRateConsentL
     public static BandInfo[] pairedBands;
     private BandClient bandClient;
     private BandPendingResult<ConnectionState> pendingResult;
+
+    public static boolean recording = false;
 
     // Storage Permissions
     private static final int REQUEST_EXTERNAL_STORAGE = 1;
@@ -53,7 +61,7 @@ public class MainActivity extends AppCompatActivity implements HeartRateConsentL
     private TextView textSensors;
     private TextView textGyro;
     private TextView textHeart;
-    private com.github.clans.fab.FloatingActionButton btnWalking,  btnRunning;
+    private com.github.clans.fab.FloatingActionButton btnWalking,  btnRunning, btnIdle;
     private FloatingActionMenu menu;
 
     public static String fwVersion;
@@ -64,19 +72,33 @@ public class MainActivity extends AppCompatActivity implements HeartRateConsentL
     private BandAccelerometerEventListener accelerometerListener;
     private BandGsrEventListener gsrListener;
     private BandGyroscopeEventListener gyroListener;
+    private BandDistanceEventListener distanceListener;
+
+    private double[] currentAccelerometer = new double[3];
+    private double[] currentGyroAngularVelocity = new double[3];
 
     private ArrayList<Double> accelXList = new ArrayList<>();
     private ArrayList<Double> accelYList = new ArrayList<>();
     private ArrayList<Double> accelZList = new ArrayList<>();
 
     private ArrayList<Double> gyroAccelXList = new ArrayList<>();
+    private ArrayList<Double> gyroAccelYList = new ArrayList<>();
+    private ArrayList<Double> gyroAccelZList = new ArrayList<>();
+    
     private ArrayList<Double> gyroAngularXList = new ArrayList<>();
+    private ArrayList<Double> gyroAngularYList = new ArrayList<>();
+    private ArrayList<Double> gyroAngularZList = new ArrayList<>();
 
     public static double gyroAccelX;
 
     public int counter = 1;
 
+    private MenuItem m;
 
+    File f;
+    CSVWriter csvWriter;
+    FileWriter fileWriter;
+    String labelType;
 
     private boolean getConnectedBandClient() throws InterruptedException, BandException {
         if (bandClient == null) {
@@ -171,6 +193,7 @@ public class MainActivity extends AppCompatActivity implements HeartRateConsentL
         verifyStoragePermissions(this);
 
         // start timer counter
+        // global value storage occured here
         new Timer().scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
@@ -187,9 +210,63 @@ public class MainActivity extends AppCompatActivity implements HeartRateConsentL
             }
         }, 0, 100);
 
+        /**
+         * Begin recording csv
+         */
+        new Timer().scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                if (recording) {
+                    String baseDir = android.os.Environment.getExternalStorageDirectory().getAbsolutePath();
+                    String status = android.os.Environment.getExternalStorageState();
+                    String fileName = "imecrunch.csv";
+
+
+                    switch (labelType) {
+                        case "WALKING":
+                            // textLabelType.setText("Walking");
+                            //fileName = "walking.csv";
+                            break;
+                        case "RUNNING":
+                            //fileName = "running.csv";
+                            break;
+                    }
+                    final String filePath = baseDir + File.separator + fileName;
+                    f = new File(filePath);
+
+                    // write csv over time
+                    if (f.exists() && !f.isDirectory()){
+                        try {
+                            fileWriter = new FileWriter(filePath,   true);
+                            csvWriter = new CSVWriter(fileWriter);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    } else {
+                        try {
+                            csvWriter = new CSVWriter(new FileWriter(filePath));
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+
+                    String[] row = {String.valueOf(currentAccelerometer[0]), String.valueOf(currentAccelerometer[1]), String.valueOf(currentAccelerometer[2]),
+                            String.valueOf(currentGyroAngularVelocity[0]), String.valueOf(currentGyroAngularVelocity[1]), String.valueOf(currentGyroAngularVelocity[2]),
+                            labelType};
+                    csvWriter.writeNext(row);
+                    try {
+                        csvWriter.close();
+                    }catch (Exception e) {
+                        e.printStackTrace();
+                    }
+
+                }
+            }
+        }, 0, 1000);
+
         accelerometerListener = new BandAccelerometerEventListener() {
             @Override
-            public void onBandAccelerometerChanged(BandAccelerometerEvent event) {
+            public void onBandAccelerometerChanged(final BandAccelerometerEvent event) {
                 accelXList.add(new Double(event.getAccelerationX()));
                 accelYList.add(new Double(event.getAccelerationY()));
                 accelZList.add(new Double(event.getAccelerationZ()));
@@ -203,17 +280,28 @@ public class MainActivity extends AppCompatActivity implements HeartRateConsentL
                     double accelZMean = StdStats.mean(ArrayUtils.toPrimitive(dAccelZ));
 
                     // update public static band info
-                    BandPublicInfo.currentAccelerometer[0] = accelXMean;
-                    BandPublicInfo.currentAccelerometer[1] = accelYMean;
-                    BandPublicInfo.currentAccelerometer[2] = accelZMean;
+                    currentAccelerometer[0] = accelXMean; currentAccelerometer[1] = accelYMean; currentAccelerometer[2] = accelZMean;
 
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            textStatus.setText(""+BandPublicInfo.currentAccelerometer[0]);
-                        }
-                    });
+                    accelXList.clear(); accelYList.clear(); accelZList.clear();
                 }
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+
+                    }
+                });
+            }
+        };
+
+        distanceListener = new BandDistanceEventListener() {
+            @Override
+            public void onBandDistanceChanged(final BandDistanceEvent bandDistanceEvent) {
+               runOnUiThread(new Runnable() {
+                   @Override
+                   public void run() {
+                       textStatus.setText(bandDistanceEvent.getMotionType().toString());
+                   }
+               });
             }
         };
 
@@ -229,24 +317,31 @@ public class MainActivity extends AppCompatActivity implements HeartRateConsentL
             public void onBandGyroscopeChanged(BandGyroscopeEvent bandGyroscopeEvent) {
 
                 gyroAngularXList.add(new Double(bandGyroscopeEvent.getAngularVelocityX()));
+                gyroAngularYList.add(new Double(bandGyroscopeEvent.getAngularVelocityY()));
+                gyroAngularZList.add(new Double(bandGyroscopeEvent.getAngularVelocityZ()));
 
                 if (counter == 10) {
                     Double[] dGyroAccelX = gyroAccelXList.toArray(new Double[gyroAccelXList.size()]);
+                    
                     Double[] dGyroAngularX = gyroAngularXList.toArray(new Double[gyroAngularXList.size()]);
-                    final double gyroAccelXMean = StdStats.mean(ArrayUtils.toPrimitive(dGyroAngularX));
+                    Double[] dGyroAngularY = gyroAngularYList.toArray(new Double[gyroAngularYList.size()]);
+                    Double[] dGyroAngularZ = gyroAngularZList.toArray(new Double[gyroAngularZList.size()]);
+                    
+                    final double gyroAngularXMean = StdStats.mean(ArrayUtils.toPrimitive(dGyroAngularX));
+                    final double gyroAngularYMean = StdStats.mean(ArrayUtils.toPrimitive(dGyroAngularY));
+                    final double gyroAngularZMean = StdStats.mean(ArrayUtils.toPrimitive(dGyroAngularZ));
 
-                    setGyroText(String.valueOf(gyroAccelXMean) + "\n" + gyroAngularXList.size());
-                    gyroAngularXList.clear();
+                    // setGyroText(String.valueOf(gyroAccelXMean));
+                    currentGyroAngularVelocity[0] = gyroAngularXMean; currentGyroAngularVelocity[1] = gyroAngularYMean; currentGyroAngularVelocity[2] = gyroAngularZMean;
+
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            if (Math.abs(gyroAccelXMean) > 10) {
-                                //textStatus.setText("Status: Moving");
-                            } else {
-                                //textStatus.setText("Status: Stay still");
-                            }
+                            
                         }
                     });
+                    
+                    gyroAngularXList.clear();gyroAngularYList.clear();gyroAngularZList.clear();
                 }
                 /*
                 setGyroText("X accel: " + bandGyroscopeEvent.getAccelerationX() + "\n" +
@@ -280,18 +375,42 @@ public class MainActivity extends AppCompatActivity implements HeartRateConsentL
         btnWalking.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent i = new Intent(MainActivity.this, StartLabelingActivity.class);
-                i.putExtra("LABEL", "WALKING");
-                startActivity(i);
+                labelType = "WALKING";
+                recording = true;
+                m.setVisible(true);
                 menu.close(true);
+                menu.hideMenu(true);
             }
         });
 
+        btnRunning = (com.github.clans.fab.FloatingActionButton) findViewById(R.id.fab_running);
+        btnRunning.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                labelType = "RUNNING";
+                recording = true;
+                m.setVisible(true);
+                menu.close(true);
+                menu.hideMenu(true);
+            }
+        });
 
+        btnIdle = (com.github.clans.fab.FloatingActionButton) findViewById(R.id.fab_idle);
+        btnIdle.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                labelType = "IDLE";
+                recording = true;
+                m.setVisible(true);
+                menu.close(true);
+                menu.hideMenu(true);
+            }
+        });
 
         new AccelerometerSubscriptionTask().execute();
         new GsrSubscriptionTask().execute();
         new GyroSubscriptionTask().execute();
+        new DistanceSubscriptionTask().execute();
 
         // sensors which need user consent
         new HrSubscriptionTask().execute();
@@ -305,6 +424,9 @@ public class MainActivity extends AppCompatActivity implements HeartRateConsentL
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_main, menu);
+
+        m = menu.findItem(R.id.action_stop_recording);
+
         return true;
     }
 
@@ -324,6 +446,10 @@ public class MainActivity extends AppCompatActivity implements HeartRateConsentL
             } else {
                 Toast.makeText(getBaseContext(), "No paired bands", Toast.LENGTH_SHORT).show();
             }
+        } else if(id == R.id.action_stop_recording) {
+            recording = false;
+            m.setVisible(false);
+            menu.showMenu(true);
         }
 
         return super.onOptionsItemSelected(item);
@@ -409,6 +535,18 @@ public class MainActivity extends AppCompatActivity implements HeartRateConsentL
                 } else {
                 }
             } catch (BandException e) {
+            } catch (Exception e) {
+            }
+            return null;
+        }
+    }
+
+    private class DistanceSubscriptionTask extends AsyncTask<Void, Void, Void> {
+
+        @Override
+        protected Void doInBackground(Void... params) {
+            try {
+                bandClient.getSensorManager().registerDistanceEventListener(distanceListener);
             } catch (Exception e) {
             }
             return null;
