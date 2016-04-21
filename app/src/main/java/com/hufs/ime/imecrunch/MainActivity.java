@@ -79,6 +79,7 @@ public class MainActivity extends AppCompatActivity implements HeartRateConsentL
     private double[] currentAccelerometer = new double[3];
     private double[] currentGyroAccel = new double[3];
     private double[] currentGyroAngularVelocity = new double[3];
+    private double[] currentGyroAcceleration = new double[3];
 
     private ArrayList<Double> accelXList = new ArrayList<>();
     private ArrayList<Double> accelYList = new ArrayList<>();
@@ -201,6 +202,10 @@ public class MainActivity extends AppCompatActivity implements HeartRateConsentL
         s2.setSensorName("Gyroscope");
         s2.setSensorValue("Angular Velocity\nX:\nY:\nZ:\n\nAcceleration\nX:\nY:\nZ:");
         sensorItems.add(s2);
+        SensorItem s3 = new SensorItem();
+        s3.setSensorName("Status");
+        s3.setSensorValue("-");
+        sensorItems.add(s3);
 
 
         final ListView sensorListView = (ListView) findViewById(R.id.list_view_sensors);
@@ -277,8 +282,12 @@ public class MainActivity extends AppCompatActivity implements HeartRateConsentL
                         }
                     }
 
+                    /**
+                     * ACTUAL CSV WRITING
+                     */
                     String[] row = {String.valueOf(currentAccelerometer[0]), String.valueOf(currentAccelerometer[1]), String.valueOf(currentAccelerometer[2]),
                             String.valueOf(currentGyroAngularVelocity[0]), String.valueOf(currentGyroAngularVelocity[1]), String.valueOf(currentGyroAngularVelocity[2]),
+                            String.valueOf(currentGyroAccel[0]), String.valueOf(currentGyroAccel[1]), String.valueOf(currentGyroAccel[2]),
                             labelType};
                     csvWriter.writeNext(row);
                     try {
@@ -330,6 +339,7 @@ public class MainActivity extends AppCompatActivity implements HeartRateConsentL
                    @Override
                    public void run() {
 //                       textStatus.setText(bandDistanceEvent.getMotionType().toString());
+                       sensorItems.get(2).setSensorValue(String.format("%s", bandDistanceEvent.getMotionType().toString()));
                    }
                });
             }
