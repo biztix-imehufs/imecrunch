@@ -79,6 +79,7 @@ public class MainActivity extends AppCompatActivity implements HeartRateConsentL
     private double[] currentAccelerometer = new double[3];
     private double[] currentGyroAccel = new double[3];
     private double[] currentGyroAngularVelocity = new double[3];
+    private double[] currentGyroAcceleration = new double[3];
 
     private ArrayList<Double> accelXList = new ArrayList<>();
     private ArrayList<Double> accelYList = new ArrayList<>();
@@ -204,6 +205,10 @@ public class MainActivity extends AppCompatActivity implements HeartRateConsentL
         s2.setSensorName("Gyroscope");
         s2.setSensorValue("Angular Velocity\nX:\nY:\nZ:\n\nAcceleration\nX:\nY:\nZ:");
         sensorItems.add(s2);
+        SensorItem s3 = new SensorItem();
+        s3.setSensorName("Status");
+        s3.setSensorValue("-");
+        sensorItems.add(s3);
 
 
         final ListView sensorListView = (ListView) findViewById(R.id.list_view_sensors);
@@ -296,193 +301,195 @@ public class MainActivity extends AppCompatActivity implements HeartRateConsentL
                             }
                         }
 
-                        String[] row = {String.valueOf(currentAccelerometer[0]), String.valueOf(currentAccelerometer[1]), String.valueOf(currentAccelerometer[2]),
-                                String.valueOf(currentGyroAngularVelocity[0]), String.valueOf(currentGyroAngularVelocity[1]), String.valueOf(currentGyroAngularVelocity[2]),
-                                labelType};
-                        csvWriter.writeNext(row);
-                        try {
-                            csvWriter.close();
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
+//                        String[] row = {String.valueOf(currentAccelerometer[0]), String.valueOf(currentAccelerometer[1]), String.valueOf(currentAccelerometer[2]),
+//                                String.valueOf(currentGyroAngularVelocity[0]), String.valueOf(currentGyroAngularVelocity[1]), String.valueOf(currentGyroAngularVelocity[2]),
+//                                labelType};
+//                        csvWriter.writeNext(row);
+//                        try {
+//                            csvWriter.close();
+//                        } catch (Exception e) {
+//                            e.printStackTrace();
+//                        }
+                    /**
+                     * ACTUAL CSV WRITING
+                     */
+                    String[] row = {String.valueOf(currentAccelerometer[0]), String.valueOf(currentAccelerometer[1]), String.valueOf(currentAccelerometer[2]),
+                            String.valueOf(currentGyroAngularVelocity[0]), String.valueOf(currentGyroAngularVelocity[1]), String.valueOf(currentGyroAngularVelocity[2]),
+                            String.valueOf(currentGyroAccel[0]), String.valueOf(currentGyroAccel[1]), String.valueOf(currentGyroAccel[2]),
+                            labelType};
+                    csvWriter.writeNext(row);
+                    try {
+                        csvWriter.close();
+                    }catch (Exception e) {
+                        e.printStackTrace();
+                    }
 
                     }
                 }
             }, 0, 1000);
 
-            accelerometerListener = new BandAccelerometerEventListener() {
-                @Override
-                public void onBandAccelerometerChanged(final BandAccelerometerEvent event) {
-                    accelXList.add(new Double(event.getAccelerationX()));
-                    accelYList.add(new Double(event.getAccelerationY()));
-                    accelZList.add(new Double(event.getAccelerationZ()));
-                    if (counter == 10) {
-                        Double[] dAccelX = accelXList.toArray(new Double[accelXList.size()]);
-                        Double[] dAccelY = accelYList.toArray(new Double[accelYList.size()]);
-                        Double[] dAccelZ = accelZList.toArray(new Double[accelZList.size()]);
+        accelerometerListener = new BandAccelerometerEventListener() {
+            @Override
+            public void onBandAccelerometerChanged(final BandAccelerometerEvent event) {
+                accelXList.add(new Double(event.getAccelerationX()));
+                accelYList.add(new Double(event.getAccelerationY()));
+                accelZList.add(new Double(event.getAccelerationZ()));
+                if (counter == 10) {
+                    Double[] dAccelX = accelXList.toArray(new Double[accelXList.size()]);
+                    Double[] dAccelY = accelYList.toArray(new Double[accelYList.size()]);
+                    Double[] dAccelZ = accelZList.toArray(new Double[accelZList.size()]);
 
-                        double accelXMean = StdStats.mean(ArrayUtils.toPrimitive(dAccelX));
-                        double accelYMean = StdStats.mean(ArrayUtils.toPrimitive(dAccelY));
-                        double accelZMean = StdStats.mean(ArrayUtils.toPrimitive(dAccelZ));
+                    double accelXMean = StdStats.mean(ArrayUtils.toPrimitive(dAccelX));
+                    double accelYMean = StdStats.mean(ArrayUtils.toPrimitive(dAccelY));
+                    double accelZMean = StdStats.mean(ArrayUtils.toPrimitive(dAccelZ));
 
-                        // update public static band info
-                        currentAccelerometer[0] = accelXMean;
-                        currentAccelerometer[1] = accelYMean;
-                        currentAccelerometer[2] = accelZMean;
+                    // update public static band info
+                    currentAccelerometer[0] = accelXMean; currentAccelerometer[1] = accelYMean; currentAccelerometer[2] = accelZMean;
 
-                        accelXList.clear();
-                        accelYList.clear();
-                        accelZList.clear();
-                    }
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            // sensorItems.get(0).setSensorValue(String.format("X: %f\nY: %f\nZ: %f", Math.random(),Math.random(), Math.random()));
-                            sensorItems.get(0).setSensorValue(String.format("X: %f\nY: %f\nZ: %f", currentAccelerometer[0], currentAccelerometer[1], currentAccelerometer[2]));
-                            ((BaseAdapter) sensorListView.getAdapter()).notifyDataSetChanged();
-                        }
-                    });
+                    accelXList.clear(); accelYList.clear(); accelZList.clear();
                 }
-            };
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        //s2.setSensorValue("Angular Velocity\nX:\nY:\nZ:\n\nAcceleration\nX:\nY:\nZ:");
+                        sensorItems.get(0).setSensorValue(String.format("X: %f\nY: %f\nZ: %f", currentAccelerometer[0], currentAccelerometer[1], currentAccelerometer[2]));
+                        ((BaseAdapter) sensorListView.getAdapter()).notifyDataSetChanged();
 
-            distanceListener = new BandDistanceEventListener() {
-                @Override
-                public void onBandDistanceChanged(final BandDistanceEvent bandDistanceEvent) {
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
+                    }
+                });
+            }
+        };
+
+        distanceListener = new BandDistanceEventListener() {
+            @Override
+            public void onBandDistanceChanged(final BandDistanceEvent bandDistanceEvent) {
+               runOnUiThread(new Runnable() {
+                   @Override
+                   public void run() {
 //                       textStatus.setText(bandDistanceEvent.getMotionType().toString());
+                       sensorItems.get(2).setSensorValue(String.format("%s", bandDistanceEvent.getMotionType().toString()));
+                   }
+               });
+            }
+        };
+
+        gsrListener = new BandGsrEventListener() {
+            @Override
+            public void onBandGsrChanged(BandGsrEvent bandGsrEvent) {
+                appendToUI(String.valueOf(bandGsrEvent.getResistance()));
+            }
+        };
+
+        gyroListener = new BandGyroscopeEventListener() {
+            @Override
+            public void onBandGyroscopeChanged(BandGyroscopeEvent bandGyroscopeEvent) {
+
+                gyroAngularXList.add(new Double(bandGyroscopeEvent.getAngularVelocityX()));
+                gyroAngularYList.add(new Double(bandGyroscopeEvent.getAngularVelocityY()));
+                gyroAngularZList.add(new Double(bandGyroscopeEvent.getAngularVelocityZ()));
+                
+                gyroAccelXList.add(new Double(bandGyroscopeEvent.getAccelerationX()));
+                gyroAccelYList.add(new Double(bandGyroscopeEvent.getAccelerationY()));
+                gyroAccelZList.add(new Double(bandGyroscopeEvent.getAccelerationZ()));
+
+                if (counter == 10) {
+                    Double[] dGyroAccelX = gyroAccelXList.toArray(new Double[gyroAccelXList.size()]);
+                    Double[] dGyroAccelY = gyroAccelYList.toArray(new Double[gyroAccelYList.size()]);
+                    Double[] dGyroAccelZ = gyroAccelZList.toArray(new Double[gyroAccelZList.size()]);
+                    
+                    Double[] dGyroAngularX = gyroAngularXList.toArray(new Double[gyroAngularXList.size()]);
+                    Double[] dGyroAngularY = gyroAngularYList.toArray(new Double[gyroAngularYList.size()]);
+                    Double[] dGyroAngularZ = gyroAngularZList.toArray(new Double[gyroAngularZList.size()]);
+                    
+                    final double gyroAngularXMean = StdStats.mean(ArrayUtils.toPrimitive(dGyroAngularX));
+                    final double gyroAngularYMean = StdStats.mean(ArrayUtils.toPrimitive(dGyroAngularY));
+                    final double gyroAngularZMean = StdStats.mean(ArrayUtils.toPrimitive(dGyroAngularZ));
+                    
+                    final double gyroAccelXMean = StdStats.mean(ArrayUtils.toPrimitive(dGyroAccelX));
+                    final double gyroAccelYMean = StdStats.mean(ArrayUtils.toPrimitive(dGyroAccelY));
+                    final double gyroAccelZMean = StdStats.mean(ArrayUtils.toPrimitive(dGyroAccelZ));
+
+                    currentGyroAngularVelocity[0] = gyroAngularXMean; currentGyroAngularVelocity[1] = gyroAngularYMean; currentGyroAngularVelocity[2] = gyroAngularZMean;
+                    currentGyroAccel[0] = gyroAccelXMean;currentGyroAccel[1] = gyroAccelYMean;currentGyroAccel[2] = gyroAccelZMean;
+
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            sensorItems.get(1).setSensorValue(String.format("Angular Velocity\nX: %f\nY: %f\nZ: %f\n\nAcceleration\nX: %f\nY: %f\nZ: %f",
+                                    currentGyroAngularVelocity[0], currentGyroAngularVelocity[1],currentGyroAngularVelocity[2],
+                                    currentGyroAccel[0], currentGyroAccel[1], currentGyroAccel[2]));
                         }
                     });
+                    
+                    gyroAngularXList.clear();gyroAngularYList.clear();gyroAngularZList.clear();
+                    gyroAccelXList.clear();gyroAccelYList.clear();gyroAccelZList.clear();
                 }
-            };
+            }
+        };
 
-            gsrListener = new BandGsrEventListener() {
-                @Override
-                public void onBandGsrChanged(BandGsrEvent bandGsrEvent) {
-                    appendToUI(String.valueOf(bandGsrEvent.getResistance()));
+        hearListener = new BandHeartRateEventListener() {
+            @Override
+            public void onBandHeartRateChanged(BandHeartRateEvent bandHeartRateEvent) {
+                setHeartText("Heart Rate: " + bandHeartRateEvent.getHeartRate() + "\n" +
+                "Heart Quality: " + bandHeartRateEvent.getQuality().name());
+            }
+        };
+        heartConsentListener = new HeartRateConsentListener() {
+            @Override
+            public void userAccepted(boolean b) {
+                if (b) {
+
                 }
-            };
+            }
+        };
 
-            gyroListener = new BandGyroscopeEventListener() {
-                @Override
-                public void onBandGyroscopeChanged(BandGyroscopeEvent bandGyroscopeEvent) {
+        menu = (FloatingActionMenu) findViewById(R.id.fab_menu);
+        btnWalking = (com.github.clans.fab.FloatingActionButton) findViewById(R.id.fab_walking);
+        btnWalking.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                labelType = "WALKING";
+                recording = true;
+                m.setVisible(true);
+                menu.close(true);
+                menu.hideMenu(true);
+                sensorItems.get(0).setSensorValue(String.format("Angular Velocity\nX:%f\nY:\nZ:\n\nAcceleration\nX:\nY:\nZ:", currentAccelerometer[0]));
+                sensorListView.invalidate();
+            }
+        });
 
-                    gyroAngularXList.add(new Double(bandGyroscopeEvent.getAngularVelocityX()));
-                    gyroAngularYList.add(new Double(bandGyroscopeEvent.getAngularVelocityY()));
-                    gyroAngularZList.add(new Double(bandGyroscopeEvent.getAngularVelocityZ()));
+        btnRunning = (com.github.clans.fab.FloatingActionButton) findViewById(R.id.fab_running);
+        btnRunning.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                labelType = "RUNNING";
+                recording = true;
+                m.setVisible(true);
+                menu.close(true);
+                menu.hideMenu(true);
+            }
+        });
 
-                    gyroAccelXList.add(new Double(bandGyroscopeEvent.getAccelerationX()));
-                    gyroAccelYList.add(new Double(bandGyroscopeEvent.getAccelerationY()));
-                    gyroAccelZList.add(new Double(bandGyroscopeEvent.getAccelerationZ()));
+        btnIdle = (com.github.clans.fab.FloatingActionButton) findViewById(R.id.fab_idle);
+        btnIdle.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                labelType = "IDLE";
+                recording = true;
+                m.setVisible(true);
+                menu.close(true);
+                menu.hideMenu(true);
+            }
+        });
 
-                    if (counter == 10) {
-                        Double[] dGyroAccelX = gyroAccelXList.toArray(new Double[gyroAccelXList.size()]);
-                        Double[] dGyroAccelY = gyroAccelYList.toArray(new Double[gyroAccelYList.size()]);
-                        Double[] dGyroAccelZ = gyroAccelZList.toArray(new Double[gyroAccelZList.size()]);
+        new AccelerometerSubscriptionTask().execute();
+        new GsrSubscriptionTask().execute();
+        new GyroSubscriptionTask().execute();
+        new DistanceSubscriptionTask().execute();
 
-                        Double[] dGyroAngularX = gyroAngularXList.toArray(new Double[gyroAngularXList.size()]);
-                        Double[] dGyroAngularY = gyroAngularYList.toArray(new Double[gyroAngularYList.size()]);
-                        Double[] dGyroAngularZ = gyroAngularZList.toArray(new Double[gyroAngularZList.size()]);
-
-                        final double gyroAngularXMean = StdStats.mean(ArrayUtils.toPrimitive(dGyroAngularX));
-                        final double gyroAngularYMean = StdStats.mean(ArrayUtils.toPrimitive(dGyroAngularY));
-                        final double gyroAngularZMean = StdStats.mean(ArrayUtils.toPrimitive(dGyroAngularZ));
-
-                        final double gyroAccelXMean = StdStats.mean(ArrayUtils.toPrimitive(dGyroAccelX));
-                        final double gyroAccelYMean = StdStats.mean(ArrayUtils.toPrimitive(dGyroAccelY));
-                        final double gyroAccelZMean = StdStats.mean(ArrayUtils.toPrimitive(dGyroAccelZ));
-
-                        currentGyroAngularVelocity[0] = gyroAngularXMean;
-                        currentGyroAngularVelocity[1] = gyroAngularYMean;
-                        currentGyroAngularVelocity[2] = gyroAngularZMean;
-                        currentGyroAccel[0] = gyroAccelXMean;
-                        currentGyroAccel[1] = gyroAccelYMean;
-                        currentGyroAccel[2] = gyroAccelZMean;
-
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                sensorItems.get(1).setSensorValue(String.format("Angular Velocity\nX: %f\nY: %f\nZ: %f\n\nAcceleration\nX: %f\nY: %f\nZ: %f",
-                                        currentGyroAngularVelocity[0], currentGyroAngularVelocity[1], currentGyroAngularVelocity[2],
-                                        currentGyroAccel[0], currentGyroAccel[1], currentGyroAccel[2]));
-                            }
-                        });
-
-                        gyroAngularXList.clear();
-                        gyroAngularYList.clear();
-                        gyroAngularZList.clear();
-                        gyroAccelXList.clear();
-                        gyroAccelYList.clear();
-                        gyroAccelZList.clear();
-                    }
-                }
-            };
-
-            hearListener = new BandHeartRateEventListener() {
-                @Override
-                public void onBandHeartRateChanged(BandHeartRateEvent bandHeartRateEvent) {
-                    setHeartText("Heart Rate: " + bandHeartRateEvent.getHeartRate() + "\n" +
-                            "Heart Quality: " + bandHeartRateEvent.getQuality().name());
-                }
-            };
-            heartConsentListener = new HeartRateConsentListener() {
-                @Override
-                public void userAccepted(boolean b) {
-                    if (b) {
-
-                    }
-                }
-            };
-
-            menu = (FloatingActionMenu) findViewById(R.id.fab_menu);
-            btnWalking = (com.github.clans.fab.FloatingActionButton) findViewById(R.id.fab_walking);
-            btnWalking.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    labelType = "WALKING";
-                    recording = true;
-                    m.setVisible(true);
-                    menu.close(true);
-                    menu.hideMenu(true);
-                    sensorItems.get(0).setSensorValue(String.format("Angular Velocity\nX:%f\nY:\nZ:\n\nAcceleration\nX:\nY:\nZ:", currentAccelerometer[0]));
-                    sensorListView.invalidate();
-                }
-            });
-
-            btnRunning = (com.github.clans.fab.FloatingActionButton) findViewById(R.id.fab_running);
-            btnRunning.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    labelType = "RUNNING";
-                    recording = true;
-                    m.setVisible(true);
-                    menu.close(true);
-                    menu.hideMenu(true);
-                }
-            });
-
-            btnIdle = (com.github.clans.fab.FloatingActionButton) findViewById(R.id.fab_idle);
-            btnIdle.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    labelType = "IDLE";
-                    recording = true;
-                    m.setVisible(true);
-                    menu.close(true);
-                    menu.hideMenu(true);
-                }
-            });
-
-            new AccelerometerSubscriptionTask().execute();
-            new GsrSubscriptionTask().execute();
-            new GyroSubscriptionTask().execute();
-            new DistanceSubscriptionTask().execute();
-
-            // sensors which need user consent
-            new HrSubscriptionTask().execute();
-        }
-//    }
+        // sensors which need user consent
+        new HrSubscriptionTask().execute();
+    }
 
     public void userAccepted(boolean consentGiven) {
 
