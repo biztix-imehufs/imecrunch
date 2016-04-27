@@ -31,4 +31,5 @@ dependencies {
     compile 'com.melnykov:floatingactionbutton:1.3.0'
     compile 'com.github.clans:fab:1.6.2'
     compile 'com.opencsv:opencsv:3.7'
+    compile 'eu.the4thfloor.volley:com.android.volley:2015.05.28'
 }
