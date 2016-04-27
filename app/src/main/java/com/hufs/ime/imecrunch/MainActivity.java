@@ -23,6 +23,12 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
 import com.github.clans.fab.FloatingActionMenu;
 import com.microsoft.band.BandClient;
 import com.microsoft.band.BandClientManager;
@@ -34,15 +40,26 @@ import com.microsoft.band.ConnectionState;
 
 import com.microsoft.band.UserConsent;
 import com.microsoft.band.sensors.*;
+import com.opencsv.CSVReader;
 import com.opencsv.CSVWriter;
 
 import org.apache.commons.lang.ArrayUtils;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.FileWriter;
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.EmptyStackException;
+import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.ExecutionException;
 
 
 public class MainActivity extends AppCompatActivity implements HeartRateConsentListener {
@@ -63,7 +80,7 @@ public class MainActivity extends AppCompatActivity implements HeartRateConsentL
     private TextView textSensors;
     private TextView textGyro;
     private TextView textHeart;
-    private com.github.clans.fab.FloatingActionButton btnWalking,  btnRunning, btnIdle;
+    private com.github.clans.fab.FloatingActionButton btnWalking, btnRunning, btnIdle;
     private FloatingActionMenu menu;
 
     public static String fwVersion;
@@ -88,12 +105,12 @@ public class MainActivity extends AppCompatActivity implements HeartRateConsentL
     private ArrayList<Double> gyroAccelXList = new ArrayList<>();
     private ArrayList<Double> gyroAccelYList = new ArrayList<>();
     private ArrayList<Double> gyroAccelZList = new ArrayList<>();
-    
+
     private ArrayList<Double> gyroAngularXList = new ArrayList<>();
     private ArrayList<Double> gyroAngularYList = new ArrayList<>();
     private ArrayList<Double> gyroAngularZList = new ArrayList<>();
 
-    private boolean simulationMode = true;
+    private boolean simulationMode = false;
 
 
     public int counter = 1;
@@ -116,7 +133,7 @@ public class MainActivity extends AppCompatActivity implements HeartRateConsentL
         } else if (ConnectionState.CONNECTED == bandClient.getConnectionState()) {
             if (bandClient.getSensorManager().getCurrentHeartRateConsent() == UserConsent.GRANTED) {
 
-            }else {
+            } else {
                 bandClient.getSensorManager().requestHeartRateConsent(this, this);
             }
             return true;
@@ -136,7 +153,7 @@ public class MainActivity extends AppCompatActivity implements HeartRateConsentL
         });
     }
 
-    private void setGyroText(final String n){
+    private void setGyroText(final String n) {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
@@ -145,7 +162,7 @@ public class MainActivity extends AppCompatActivity implements HeartRateConsentL
         });
     }
 
-    private void setHeartText(final String n){
+    private void setHeartText(final String n) {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
@@ -161,7 +178,7 @@ public class MainActivity extends AppCompatActivity implements HeartRateConsentL
 
     /**
      * Checks if the app has permission to write to device storage
-     *
+     * <p/>
      * If the app does not has permission then the user will be prompted to grant permissions
      *
      * @param activity
@@ -225,7 +242,7 @@ public class MainActivity extends AppCompatActivity implements HeartRateConsentL
             @Override
             public void run() {
                 counter++;
-                if(counter >= 11) {
+                if (counter >= 11) {
                     counter = 1;
                 }
                 runOnUiThread(new Runnable() {
@@ -247,7 +264,7 @@ public class MainActivity extends AppCompatActivity implements HeartRateConsentL
         }, 0, 100);
 
 //        if (simulationMode) {
-            Timer simulationRunner = new Timer();
+        Timer simulationRunner = new Timer();
             /*
             simulationRunner.scheduleAtFixedRate(new TimerTask() {
                 @Override
@@ -260,46 +277,46 @@ public class MainActivity extends AppCompatActivity implements HeartRateConsentL
             */
 //        } else {
 
-            /**
-             * Begin recording csv
-             */
-            writeCSVTimer = new Timer();
-            writeCSVTimer.scheduleAtFixedRate(new TimerTask() {
-                @Override
-                public void run() {
-                    if (recording) {
-                        String baseDir = android.os.Environment.getExternalStorageDirectory().getAbsolutePath();
-                        String status = android.os.Environment.getExternalStorageState();
-                        String fileName = "imecrunch.csv";
+        /**
+         * Begin recording csv
+         */
+        writeCSVTimer = new Timer();
+        writeCSVTimer.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                if (recording) {
+                    String baseDir = android.os.Environment.getExternalStorageDirectory().getAbsolutePath();
+                    String status = android.os.Environment.getExternalStorageState();
+                    String fileName = "imecrunch.csv";
 
 
-                        switch (labelType) {
-                            case "WALKING":
-                                // textLabelType.setText("Walking");
-                                //fileName = "walking.csv";
-                                break;
-                            case "RUNNING":
-                                //fileName = "running.csv";
-                                break;
+                    switch (labelType) {
+                        case "WALKING":
+                            // textLabelType.setText("Walking");
+                            //fileName = "walking.csv";
+                            break;
+                        case "RUNNING":
+                            //fileName = "running.csv";
+                            break;
+                    }
+                    final String filePath = baseDir + File.separator + fileName;
+                    f = new File(filePath);
+
+                    // write csv over time
+                    if (f.exists() && !f.isDirectory()) {
+                        try {
+                            fileWriter = new FileWriter(filePath, true);
+                            csvWriter = new CSVWriter(fileWriter);
+                        } catch (Exception e) {
+                            e.printStackTrace();
                         }
-                        final String filePath = baseDir + File.separator + fileName;
-                        f = new File(filePath);
-
-                        // write csv over time
-                        if (f.exists() && !f.isDirectory()) {
-                            try {
-                                fileWriter = new FileWriter(filePath, true);
-                                csvWriter = new CSVWriter(fileWriter);
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                            }
-                        } else {
-                            try {
-                                csvWriter = new CSVWriter(new FileWriter(filePath));
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                            }
+                    } else {
+                        try {
+                            csvWriter = new CSVWriter(new FileWriter(filePath));
+                        } catch (Exception e) {
+                            e.printStackTrace();
                         }
+                    }
 
 //                        String[] row = {String.valueOf(currentAccelerometer[0]), String.valueOf(currentAccelerometer[1]), String.valueOf(currentAccelerometer[2]),
 //                                String.valueOf(currentGyroAngularVelocity[0]), String.valueOf(currentGyroAngularVelocity[1]), String.valueOf(currentGyroAngularVelocity[2]),
@@ -313,20 +330,21 @@ public class MainActivity extends AppCompatActivity implements HeartRateConsentL
                     /**
                      * ACTUAL CSV WRITING
                      */
-                    String[] row = {String.valueOf(currentAccelerometer[0]), String.valueOf(currentAccelerometer[1]), String.valueOf(currentAccelerometer[2]),
+                    String[] row = {new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date()),
+                            String.valueOf(currentAccelerometer[0]), String.valueOf(currentAccelerometer[1]), String.valueOf(currentAccelerometer[2]),
                             String.valueOf(currentGyroAngularVelocity[0]), String.valueOf(currentGyroAngularVelocity[1]), String.valueOf(currentGyroAngularVelocity[2]),
                             String.valueOf(currentGyroAccel[0]), String.valueOf(currentGyroAccel[1]), String.valueOf(currentGyroAccel[2]),
                             labelType};
                     csvWriter.writeNext(row);
                     try {
                         csvWriter.close();
-                    }catch (Exception e) {
+                    } catch (Exception e) {
                         e.printStackTrace();
                     }
 
-                    }
                 }
-            }, 0, 1000);
+            }
+        }, 0, 1000);
 
         accelerometerListener = new BandAccelerometerEventListener() {
             @Override
@@ -344,9 +362,13 @@ public class MainActivity extends AppCompatActivity implements HeartRateConsentL
                     double accelZMean = StdStats.mean(ArrayUtils.toPrimitive(dAccelZ));
 
                     // update public static band info
-                    currentAccelerometer[0] = accelXMean; currentAccelerometer[1] = accelYMean; currentAccelerometer[2] = accelZMean;
+                    currentAccelerometer[0] = accelXMean;
+                    currentAccelerometer[1] = accelYMean;
+                    currentAccelerometer[2] = accelZMean;
 
-                    accelXList.clear(); accelYList.clear(); accelZList.clear();
+                    accelXList.clear();
+                    accelYList.clear();
+                    accelZList.clear();
                 }
                 runOnUiThread(new Runnable() {
                     @Override
@@ -363,13 +385,13 @@ public class MainActivity extends AppCompatActivity implements HeartRateConsentL
         distanceListener = new BandDistanceEventListener() {
             @Override
             public void onBandDistanceChanged(final BandDistanceEvent bandDistanceEvent) {
-               runOnUiThread(new Runnable() {
-                   @Override
-                   public void run() {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
 //                       textStatus.setText(bandDistanceEvent.getMotionType().toString());
-                       sensorItems.get(2).setSensorValue(String.format("%s", bandDistanceEvent.getMotionType().toString()));
-                   }
-               });
+                        sensorItems.get(2).setSensorValue(String.format("%s", bandDistanceEvent.getMotionType().toString()));
+                    }
+                });
             }
         };
 
@@ -387,7 +409,7 @@ public class MainActivity extends AppCompatActivity implements HeartRateConsentL
                 gyroAngularXList.add(new Double(bandGyroscopeEvent.getAngularVelocityX()));
                 gyroAngularYList.add(new Double(bandGyroscopeEvent.getAngularVelocityY()));
                 gyroAngularZList.add(new Double(bandGyroscopeEvent.getAngularVelocityZ()));
-                
+
                 gyroAccelXList.add(new Double(bandGyroscopeEvent.getAccelerationX()));
                 gyroAccelYList.add(new Double(bandGyroscopeEvent.getAccelerationY()));
                 gyroAccelZList.add(new Double(bandGyroscopeEvent.getAccelerationZ()));
@@ -396,33 +418,41 @@ public class MainActivity extends AppCompatActivity implements HeartRateConsentL
                     Double[] dGyroAccelX = gyroAccelXList.toArray(new Double[gyroAccelXList.size()]);
                     Double[] dGyroAccelY = gyroAccelYList.toArray(new Double[gyroAccelYList.size()]);
                     Double[] dGyroAccelZ = gyroAccelZList.toArray(new Double[gyroAccelZList.size()]);
-                    
+
                     Double[] dGyroAngularX = gyroAngularXList.toArray(new Double[gyroAngularXList.size()]);
                     Double[] dGyroAngularY = gyroAngularYList.toArray(new Double[gyroAngularYList.size()]);
                     Double[] dGyroAngularZ = gyroAngularZList.toArray(new Double[gyroAngularZList.size()]);
-                    
+
                     final double gyroAngularXMean = StdStats.mean(ArrayUtils.toPrimitive(dGyroAngularX));
                     final double gyroAngularYMean = StdStats.mean(ArrayUtils.toPrimitive(dGyroAngularY));
                     final double gyroAngularZMean = StdStats.mean(ArrayUtils.toPrimitive(dGyroAngularZ));
-                    
+
                     final double gyroAccelXMean = StdStats.mean(ArrayUtils.toPrimitive(dGyroAccelX));
                     final double gyroAccelYMean = StdStats.mean(ArrayUtils.toPrimitive(dGyroAccelY));
                     final double gyroAccelZMean = StdStats.mean(ArrayUtils.toPrimitive(dGyroAccelZ));
 
-                    currentGyroAngularVelocity[0] = gyroAngularXMean; currentGyroAngularVelocity[1] = gyroAngularYMean; currentGyroAngularVelocity[2] = gyroAngularZMean;
-                    currentGyroAccel[0] = gyroAccelXMean;currentGyroAccel[1] = gyroAccelYMean;currentGyroAccel[2] = gyroAccelZMean;
+                    currentGyroAngularVelocity[0] = gyroAngularXMean;
+                    currentGyroAngularVelocity[1] = gyroAngularYMean;
+                    currentGyroAngularVelocity[2] = gyroAngularZMean;
+                    currentGyroAccel[0] = gyroAccelXMean;
+                    currentGyroAccel[1] = gyroAccelYMean;
+                    currentGyroAccel[2] = gyroAccelZMean;
 
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
                             sensorItems.get(1).setSensorValue(String.format("Angular Velocity\nX: %f\nY: %f\nZ: %f\n\nAcceleration\nX: %f\nY: %f\nZ: %f",
-                                    currentGyroAngularVelocity[0], currentGyroAngularVelocity[1],currentGyroAngularVelocity[2],
+                                    currentGyroAngularVelocity[0], currentGyroAngularVelocity[1], currentGyroAngularVelocity[2],
                                     currentGyroAccel[0], currentGyroAccel[1], currentGyroAccel[2]));
                         }
                     });
-                    
-                    gyroAngularXList.clear();gyroAngularYList.clear();gyroAngularZList.clear();
-                    gyroAccelXList.clear();gyroAccelYList.clear();gyroAccelZList.clear();
+
+                    gyroAngularXList.clear();
+                    gyroAngularYList.clear();
+                    gyroAngularZList.clear();
+                    gyroAccelXList.clear();
+                    gyroAccelYList.clear();
+                    gyroAccelZList.clear();
                 }
             }
         };
@@ -431,7 +461,7 @@ public class MainActivity extends AppCompatActivity implements HeartRateConsentL
             @Override
             public void onBandHeartRateChanged(BandHeartRateEvent bandHeartRateEvent) {
                 setHeartText("Heart Rate: " + bandHeartRateEvent.getHeartRate() + "\n" +
-                "Heart Quality: " + bandHeartRateEvent.getQuality().name());
+                        "Heart Quality: " + bandHeartRateEvent.getQuality().name());
             }
         };
         heartConsentListener = new HeartRateConsentListener() {
@@ -482,13 +512,15 @@ public class MainActivity extends AppCompatActivity implements HeartRateConsentL
             }
         });
 
-        new AccelerometerSubscriptionTask().execute();
-        new GsrSubscriptionTask().execute();
-        new GyroSubscriptionTask().execute();
-        new DistanceSubscriptionTask().execute();
+        if (!simulationMode) {
+            new AccelerometerSubscriptionTask().execute();
+            new GsrSubscriptionTask().execute();
+            new GyroSubscriptionTask().execute();
+            new DistanceSubscriptionTask().execute();
 
-        // sensors which need user consent
-        new HrSubscriptionTask().execute();
+            // sensors which need user consent
+            new HrSubscriptionTask().execute();
+        }
     }
 
     public void userAccepted(boolean consentGiven) {
@@ -503,6 +535,48 @@ public class MainActivity extends AppCompatActivity implements HeartRateConsentL
         m = menu.findItem(R.id.action_stop_recording);
 
         return true;
+    }
+
+    public void beginSynchronization() {
+
+        RequestQueue queue = Volley.newRequestQueue(this);
+
+        String baseDir = android.os.Environment.getExternalStorageDirectory().getAbsolutePath();
+        String status = android.os.Environment.getExternalStorageState();
+        String fileName = "imecrunch.csv";
+
+
+        final String filePath = baseDir + File.separator + fileName;
+        try {
+            CSVReader reader = new CSVReader(new FileReader(filePath));
+            String[] row;
+
+            while ((row = reader.readNext()) != null) {
+                String param = Arrays.toString(row).replace("[", "").replace("]", "").replace(", ", ",");
+                param = URLEncoder.encode(param, "utf-8");
+                String url = "http://biztix.hufs.ac.kr/sa/sa-crunch-connector.jsp?sensor=" + param;
+                StringRequest req = new StringRequest(Request.Method.GET, url, new Response.Listener<String>() {
+                    @Override
+                    public void onResponse(String response) {
+
+                    }
+                }, new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+//                        Toast.makeText(getBaseContext(), "One or more data were failed to synchronize", Toast.LENGTH_SHORT).show();
+                    }
+                });
+
+                queue.add(req);
+
+            }
+
+            Toast.makeText(getBaseContext(), "Synchronization performed", Toast.LENGTH_SHORT).show();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -521,10 +595,12 @@ public class MainActivity extends AppCompatActivity implements HeartRateConsentL
             } else {
                 Toast.makeText(getBaseContext(), "No paired bands", Toast.LENGTH_SHORT).show();
             }
-        } else if(id == R.id.action_stop_recording) {
+        } else if (id == R.id.action_stop_recording) {
             recording = false;
             m.setVisible(false);
             menu.showMenu(true);
+        } else if (id == R.id.action_sync) {
+            beginSynchronization();
         }
 
         return super.onOptionsItemSelected(item);
@@ -611,7 +687,7 @@ public class MainActivity extends AppCompatActivity implements HeartRateConsentL
         }
     }
 
-    private class HrSubscriptionTask  extends AsyncTask<Void, Void, Void> {
+    private class HrSubscriptionTask extends AsyncTask<Void, Void, Void> {
         @Override
         protected Void doInBackground(Void[] params) {
             try {
