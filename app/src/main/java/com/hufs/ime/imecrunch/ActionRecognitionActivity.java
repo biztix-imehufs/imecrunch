@@ -2,21 +2,16 @@ package com.hufs.ime.imecrunch;
 
 import android.Manifest;
 import android.app.Activity;
-import android.app.VoiceInteractor;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
-import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.ActionMenuView;
 import android.support.v7.widget.Toolbar;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.SurfaceHolder;
 import android.view.View;
 import android.widget.BaseAdapter;
 import android.widget.ListView;
@@ -55,14 +50,14 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.EmptyStackException;
-import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.ExecutionException;
+
+import listview.MovementSensorItem;
+import listview.MovementSensorListAdapter;
 
 
-public class MainActivity extends AppCompatActivity implements HeartRateConsentListener {
+public class ActionRecognitionActivity extends AppCompatActivity implements HeartRateConsentListener {
     public static BandInfo[] pairedBands;
     private BandClient bandClient;
     private BandPendingResult<ConnectionState> pendingResult;
@@ -93,7 +88,7 @@ public class MainActivity extends AppCompatActivity implements HeartRateConsentL
     private BandGyroscopeEventListener gyroListener;
     private BandDistanceEventListener distanceListener;
 
-    private double[] currentAccelerometer = new double[3];
+    public static double[] currentAccelerometer = new double[3];
     private double[] currentGyroAccel = new double[3];
     private double[] currentGyroAngularVelocity = new double[3];
     private double[] currentGyroAcceleration = new double[3];
@@ -207,29 +202,30 @@ public class MainActivity extends AppCompatActivity implements HeartRateConsentL
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
+        getSupportActionBar().setTitle("Activity Recognition");
         if (simulationMode)
-            getSupportActionBar().setTitle(getSupportActionBar().getTitle() + " (simulated)");
+            getSupportActionBar().setTitle("Activity Recognition (simulated)");
 
         /**
          * LIST VIEW OF SENSORS
          */
-        final ArrayList<SensorItem> sensorItems = new ArrayList<>();
-        SensorItem s = new SensorItem();
+        final ArrayList<MovementSensorItem> movementSensorItems = new ArrayList<>();
+        MovementSensorItem s = new MovementSensorItem();
         s.setSensorName("Accelerometer");
         s.setSensorValue("X:\nY:\nZ:");
-        sensorItems.add(s);
-        SensorItem s2 = new SensorItem();
+        movementSensorItems.add(s);
+        MovementSensorItem s2 = new MovementSensorItem();
         s2.setSensorName("Gyroscope");
         s2.setSensorValue("Angular Velocity\nX:\nY:\nZ:\n\nAcceleration\nX:\nY:\nZ:");
-        sensorItems.add(s2);
-        SensorItem s3 = new SensorItem();
+        movementSensorItems.add(s2);
+        MovementSensorItem s3 = new MovementSensorItem();
         s3.setSensorName("Status");
         s3.setSensorValue("-");
-        sensorItems.add(s3);
+        movementSensorItems.add(s3);
 
 
         final ListView sensorListView = (ListView) findViewById(R.id.list_view_sensors);
-        sensorListView.setAdapter(new SensorListAdapter(this, sensorItems));
+        sensorListView.setAdapter(new MovementSensorListAdapter(this, movementSensorItems));
 
         pairedBands = BandClientManager.getInstance().getPairedBands();
 
@@ -252,8 +248,8 @@ public class MainActivity extends AppCompatActivity implements HeartRateConsentL
                             /**
                              * PROVIDE SIMULATED (DUMMY) SENSOR VALUE
                              */
-                            sensorItems.get(0).setSensorValue(String.format("X: %f\nY: %f\nZ: %f", Math.random(), Math.random(), Math.random()));
-                            sensorItems.get(1).setSensorValue(String.format("Angular Velocity\nX: %f\nY: %f\nZ: %f\n\nAcceleration\nX: %f\nY: %f\nZ: %f",
+                            movementSensorItems.get(0).setSensorValue(String.format("X: %f\nY: %f\nZ: %f", Math.random(), Math.random(), Math.random()));
+                            movementSensorItems.get(1).setSensorValue(String.format("Angular Velocity\nX: %f\nY: %f\nZ: %f\n\nAcceleration\nX: %f\nY: %f\nZ: %f",
                                     Math.random(), Math.random(), Math.random(),
                                     Math.random(), Math.random(), Math.random()));
                             ((BaseAdapter) sensorListView.getAdapter()).notifyDataSetChanged();
@@ -269,7 +265,7 @@ public class MainActivity extends AppCompatActivity implements HeartRateConsentL
             simulationRunner.scheduleAtFixedRate(new TimerTask() {
                 @Override
                 public void run() {
-//                    sensorItems.get(0).setSensorValue(String.format("X: %f\nY: %f\nZ: %f", Math.random(), Math.random(), Math.random()));
+//                    movementSensorItems.get(0).setSensorValue(String.format("X: %f\nY: %f\nZ: %f", Math.random(), Math.random(), Math.random()));
 //                    ((BaseAdapter) sensorListView.getAdapter()).notifyDataSetChanged();
 
                 }
@@ -287,7 +283,7 @@ public class MainActivity extends AppCompatActivity implements HeartRateConsentL
                 if (recording) {
                     String baseDir = android.os.Environment.getExternalStorageDirectory().getAbsolutePath();
                     String status = android.os.Environment.getExternalStorageState();
-                    String fileName = "imecrunch.csv";
+                    String fileName = "action.csv";
 
 
                     switch (labelType) {
@@ -374,7 +370,7 @@ public class MainActivity extends AppCompatActivity implements HeartRateConsentL
                     @Override
                     public void run() {
                         //s2.setSensorValue("Angular Velocity\nX:\nY:\nZ:\n\nAcceleration\nX:\nY:\nZ:");
-                        sensorItems.get(0).setSensorValue(String.format("X: %f\nY: %f\nZ: %f", currentAccelerometer[0], currentAccelerometer[1], currentAccelerometer[2]));
+                        movementSensorItems.get(0).setSensorValue(String.format("X: %f\nY: %f\nZ: %f", currentAccelerometer[0], currentAccelerometer[1], currentAccelerometer[2]));
                         ((BaseAdapter) sensorListView.getAdapter()).notifyDataSetChanged();
 
                     }
@@ -389,7 +385,7 @@ public class MainActivity extends AppCompatActivity implements HeartRateConsentL
                     @Override
                     public void run() {
 //                       textStatus.setText(bandDistanceEvent.getMotionType().toString());
-                        sensorItems.get(2).setSensorValue(String.format("%s", bandDistanceEvent.getMotionType().toString()));
+                        movementSensorItems.get(2).setSensorValue(String.format("%s", bandDistanceEvent.getMotionType().toString()));
                     }
                 });
             }
@@ -441,7 +437,7 @@ public class MainActivity extends AppCompatActivity implements HeartRateConsentL
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            sensorItems.get(1).setSensorValue(String.format("Angular Velocity\nX: %f\nY: %f\nZ: %f\n\nAcceleration\nX: %f\nY: %f\nZ: %f",
+                            movementSensorItems.get(1).setSensorValue(String.format("Angular Velocity\nX: %f\nY: %f\nZ: %f\n\nAcceleration\nX: %f\nY: %f\nZ: %f",
                                     currentGyroAngularVelocity[0], currentGyroAngularVelocity[1], currentGyroAngularVelocity[2],
                                     currentGyroAccel[0], currentGyroAccel[1], currentGyroAccel[2]));
                         }
@@ -483,8 +479,6 @@ public class MainActivity extends AppCompatActivity implements HeartRateConsentL
                 m.setVisible(true);
                 menu.close(true);
                 menu.hideMenu(true);
-                sensorItems.get(0).setSensorValue(String.format("Angular Velocity\nX:%f\nY:\nZ:\n\nAcceleration\nX:\nY:\nZ:", currentAccelerometer[0]));
-                sensorListView.invalidate();
             }
         });
 
@@ -612,6 +606,7 @@ public class MainActivity extends AppCompatActivity implements HeartRateConsentL
         if (bandClient != null) {
             try {
                 bandClient.getSensorManager().unregisterAccelerometerEventListener(accelerometerListener);
+                bandClient.getSensorManager().unregisterGyroscopeEventListener(gyroListener);
             } catch (BandIOException e) {
                 appendToUI(e.getMessage());
             }

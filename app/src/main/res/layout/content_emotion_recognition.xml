@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:fab="http://schemas.android.com/apk/res-auto"
+    app:layout_behavior="@string/appbar_scrolling_view_behavior"
+    tools:context="com.hufs.ime.imecrunch.EmotionRecognitionActivity"
+    tools:showIn="@layout/activity_emotion_recognition">
+
+    <ListView
+        android:id="@+id/list_view_sensors"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:layout_gravity="right|top" />
+
+    <com.github.clans.fab.FloatingActionMenu
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|right"
+        android:layout_margin="16dp"
+        fab:menu_labels_showAnimation="@anim/fab_slide_in_from_right"
+        fab:menu_labels_hideAnimation="@anim/fab_slide_out_to_right"
+        fab:menu_colorNormal="#48ac9d"
+        android:id="@+id/fab_menu">
+        <com.github.clans.fab.FloatingActionButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/ic_directions_walk_white_48dp"
+            app:fab_colorNormal="#DA4336"
+            app:fab_colorPressed="#E75043"
+            fab:fab_label="Happy"
+            android:id="@+id/fab_happy" />
+        <com.github.clans.fab.FloatingActionButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/ic_directions_run_white_48dp"
+            app:fab_colorNormal="#DA4336"
+            app:fab_colorPressed="#E75043"
+            fab:fab_label="Sad"
+            android:id="@+id/fab_sad" />
+
+    </com.github.clans.fab.FloatingActionMenu>
+
+</FrameLayout>

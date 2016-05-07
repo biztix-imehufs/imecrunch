@@ -1,9 +1,9 @@
-package com.hufs.ime.imecrunch;
+package listview;
 
 /**
  * Created by imehufs on 4/14/2016.
  */
-public class SensorItem {
+public class MovementSensorItem {
     private String sensorName;
     private String sensorValue;
 

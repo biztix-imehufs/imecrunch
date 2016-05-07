@@ -1,21 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
-    tools:context=".ActionRecognitionActivity">
-
-    <item
-        android:id="@+id/action_sync"
-        android:title="Synchronize"
-        app:showAsAction="never"
-        />
-
-    <item
-        android:id="@+id/action_info"
-        android:title="Band Info"
-        android:icon="@drawable/ic_face_white_48dp"
-        app:showAsAction="never"
-        />
-
+    xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
         android:id="@+id/action_settings"
         android:orderInCategory="100"
