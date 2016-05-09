@@ -673,9 +673,10 @@ public class ActionRecognitionActivity extends AppCompatActivity implements Hear
         int id = item.getItemId();
 
         //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
+        /*if (id == R.id.action_settings) {
             return true;
-        } else if (id == R.id.action_info) {
+        } else*/
+        if (id == R.id.action_info) {
             if (pairedBands.length > 0) {
                 startActivity(new Intent(getBaseContext(), DeviceInfoActivity.class));
             } else {
