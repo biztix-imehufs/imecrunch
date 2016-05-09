@@ -5,111 +5,33 @@
     xmlns:fab="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:padding="10dp"
     android:paddingBottom="@dimen/activity_vertical_margin"
     app:layout_behavior="@string/appbar_scrolling_view_behavior"
     tools:context=".ActionRecognitionActivity"
     tools:showIn="@layout/activity_main">
-    <!--<TextView-->
-        <!--android:layout_width="fill_parent"-->
-        <!--android:textAlignment="center"-->
-        <!--android:layout_height="wrap_content"-->
-        <!--android:text="status: -"-->
-        <!--android:id="@+id/txt_status"-->
-        <!--android:layout_alignParentTop="true"-->
-        <!--android:layout_centerHorizontal="true"-->
-        <!--android:padding="20dp"-->
-        <!--android:textStyle="bold"-->
-        <!--android:textSize="20dp"-->
-        <!--android:background="#3ea999"-->
-        <!--android:textColor="#fff"-->
-        <!--android:textAllCaps="true"-->
-        <!--/>-->
-
-    <ScrollView
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_marginTop="60dp"
-        >
-
-    </ScrollView>
-
-    <!--<RelativeLayout-->
-        <!--android:layout_width="match_parent"-->
-        <!--android:layout_height="wrap_content">-->
-
-
-
-        <!--<TextView-->
-            <!--android:layout_width="wrap_content"-->
-            <!--android:layout_height="wrap_content"-->
-            <!--android:textAppearance="?android:attr/textAppearanceSmall"-->
-            <!--android:text="-"-->
-            <!--android:id="@+id/text_sensor"-->
-            <!--android:layout_below="@+id/textView5"-->
-            <!--android:layout_centerHorizontal="true" />-->
-
-        <!--<TextView-->
-            <!--android:layout_width="wrap_content"-->
-            <!--android:layout_height="wrap_content"-->
-            <!--android:text="Galvanic Skin Response"-->
-            <!--android:textColor="#fff"-->
-
-            <!--android:padding="10dp"-->
-            <!--android:background="#3ea999"-->
-            <!--android:id="@+id/textView5"-->
-
-            <!--android:layout_centerHorizontal="true" />-->
-
-        <!--<TextView-->
-            <!--android:layout_width="wrap_content"-->
-            <!--android:layout_height="wrap_content"-->
-            <!--android:layout_marginTop="30dp"-->
-            <!--android:text="Heart Rate"-->
-            <!--android:textColor="#fff"-->
-            <!--android:padding="10dp"-->
-            <!--android:background="#3ea999"-->
-            <!--android:id="@+id/textView2"-->
-            <!--android:layout_below="@+id/text_sensor"-->
-            <!--android:layout_centerHorizontal="true" />-->
-
-        <!--<TextView-->
-            <!--android:layout_width="wrap_content"-->
-            <!--android:layout_height="wrap_content"-->
-            <!--android:textAppearance="?android:attr/textAppearanceSmall"-->
-            <!--android:text="-"-->
-            <!--android:id="@+id/text_heart"-->
-            <!--android:layout_below="@+id/textView2"-->
-            <!--android:layout_centerHorizontal="true"-->
-            <!--/>-->
-
-        <!--<TextView-->
-            <!--android:layout_width="wrap_content"-->
-            <!--android:layout_height="wrap_content"-->
-            <!--android:text="Gyroscope"-->
-            <!--android:textColor="#fff"-->
-            <!--android:padding="10dp"-->
-            <!--android:layout_marginTop="30dp"-->
-            <!--android:background="#3ea999"-->
-            <!--android:id="@+id/textView4"-->
-            <!--android:layout_below="@+id/text_heart"-->
-            <!--android:layout_centerHorizontal="true" />-->
-
-        <!--<TextView-->
-            <!--android:layout_width="wrap_content"-->
-            <!--android:layout_height="wrap_content"-->
-            <!--android:textAppearance="?android:attr/textAppearanceSmall"-->
-            <!--android:text="-"-->
-            <!--android:id="@+id/text_gyro"-->
-            <!--android:layout_below="@+id/textView4"-->
-            <!--android:layout_centerHorizontal="true" />-->
-
-    <!--</RelativeLayout>-->
 
 
     <com.jjoe64.graphview.GraphView
         android:layout_width="match_parent"
         android:layout_height="200dip"
         android:id="@+id/graph" />
+
+    <ImageView
+        android:id="@+id/imageView"
+        android:layout_width="128dip"
+        android:layout_height="128dip"
+        android:layout_gravity="center"
+        android:background="@drawable/asidle" />
+
+    <TextView
+        android:id="@+id/text_action_state"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="@style/TextAppearance.AppCompat.Large"
+        android:layout_marginTop="340dip"
+        android:text="NEUTRAL"
+        android:layout_gravity="center_horizontal"/>
 
     <com.github.clans.fab.FloatingActionMenu
         android:layout_width="wrap_content"
@@ -145,6 +67,14 @@
             fab:fab_label="Idle"
             android:id="@+id/fab_idle" />
     </com.github.clans.fab.FloatingActionMenu>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="New Text"
+        android:id="@+id/numVx"
+        android:visibility="gone"
+        android:layout_gravity="left|center_vertical" />
 
 
 </FrameLayout>

@@ -15,6 +15,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.BaseAdapter;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -27,6 +28,7 @@ import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 import com.github.clans.fab.FloatingActionMenu;
 import com.jjoe64.graphview.GraphView;
+import com.jjoe64.graphview.LegendRenderer;
 import com.jjoe64.graphview.series.DataPoint;
 import com.jjoe64.graphview.series.LineGraphSeries;
 import com.microsoft.band.BandClient;
@@ -128,6 +130,9 @@ public class ActionRecognitionActivity extends AppCompatActivity implements Hear
     String labelType;
     private long seriesCounter;
 
+    double totalVx = 0;
+    int vxCounter = 0;
+
     private boolean getConnectedBandClient() throws InterruptedException, BandException {
         if (bandClient == null) {
             BandInfo[] devices = BandClientManager.getInstance().getPairedBands();
@@ -185,11 +190,12 @@ public class ActionRecognitionActivity extends AppCompatActivity implements Hear
     }
 
     private void addGyroAngularPointToGraph() {
-        gyroxSeries.appendData(new DataPoint(seriesCounter, currentGyroAngularVelocity[0]), true, 40);
-        gyroySeries.appendData(new DataPoint(seriesCounter, currentGyroAngularVelocity[1]), true, 40);
-        gyrozSeries.appendData(new DataPoint(seriesCounter, currentGyroAngularVelocity[2]), true, 40);
+        gyroxSeries.appendData(new DataPoint(seriesCounter, currentGyroAngularVelocity[0]), true, 100);
+        gyroySeries.appendData(new DataPoint(seriesCounter, currentGyroAngularVelocity[1]), true, 100);
+        gyrozSeries.appendData(new DataPoint(seriesCounter, currentGyroAngularVelocity[2]), true, 100);
         seriesCounter++;
     }
+
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
@@ -255,21 +261,34 @@ public class ActionRecognitionActivity extends AppCompatActivity implements Hear
 //        sensorListView.setAdapter(new MovementSensorListAdapter(this, movementSensorItems));
 
         graphView = (GraphView) findViewById(R.id.graph);
-        accxSeries = new LineGraphSeries<>(); accxSeries.setColor(Color.rgb(255, 0, 0));
-        accySeries = new LineGraphSeries<>(); accySeries.setColor(Color.rgb(0, 255, 0));
-        acczSeries = new LineGraphSeries<>(); acczSeries.setColor(Color.rgb(0, 0, 255));
+        accxSeries = new LineGraphSeries<>();
+        accxSeries.setColor(Color.rgb(255, 0, 0));
+        accySeries = new LineGraphSeries<>();
+        accySeries.setColor(Color.rgb(0, 255, 0));
+        acczSeries = new LineGraphSeries<>();
+        acczSeries.setColor(Color.rgb(0, 0, 255));
 
-        gyroxSeries = new LineGraphSeries<>(); gyroxSeries.setColor(Color.rgb(255, 0, 0));
-        gyroySeries = new LineGraphSeries<>(); gyroySeries.setColor(Color.rgb(0, 255, 0));
-        gyrozSeries = new LineGraphSeries<>(); gyrozSeries.setColor(Color.rgb(0, 0, 255));
+        gyroxSeries = new LineGraphSeries<>();
+        gyroxSeries.setColor(Color.rgb(255, 0, 0));
+        gyroySeries = new LineGraphSeries<>();
+        gyroySeries.setColor(Color.rgb(0, 255, 0));
+        gyrozSeries = new LineGraphSeries<>();
+        gyrozSeries.setColor(Color.rgb(0, 0, 255));
 
         graphView.getViewport().setXAxisBoundsManual(true);
-        graphView.getViewport().setMaxX(40);
+        graphView.getViewport().setMaxX(100);
         graphView.getViewport().setMinX(0);
         graphView.getViewport().setYAxisBoundsManual(true);
         graphView.getViewport().setMaxY(1000);
         graphView.getViewport().setMinY(-1000);
         graphView.getGridLabelRenderer().setHorizontalLabelsVisible(false);
+        graphView.getLegendRenderer().setVisible(true);
+        graphView.getLegendRenderer().setAlign(LegendRenderer.LegendAlign.BOTTOM);
+        graphView.getLegendRenderer().setBackgroundColor(Color.WHITE);
+
+        gyroxSeries.setTitle("V Ang X");
+        gyroySeries.setTitle("V Ang Y");
+        gyrozSeries.setTitle("V Ang Z");
 
         graphView.addSeries(gyroxSeries);
         graphView.addSeries(gyroySeries);
@@ -349,15 +368,6 @@ public class ActionRecognitionActivity extends AppCompatActivity implements Hear
                         }
                     }
 
-//                        String[] row = {String.valueOf(currentAccelerometer[0]), String.valueOf(currentAccelerometer[1]), String.valueOf(currentAccelerometer[2]),
-//                                String.valueOf(currentGyroAngularVelocity[0]), String.valueOf(currentGyroAngularVelocity[1]), String.valueOf(currentGyroAngularVelocity[2]),
-//                                labelType};
-//                        csvWriter.writeNext(row);
-//                        try {
-//                            csvWriter.close();
-//                        } catch (Exception e) {
-//                            e.printStackTrace();
-//                        }
                     /**
                      * ACTUAL CSV WRITING
                      */
@@ -421,6 +431,20 @@ public class ActionRecognitionActivity extends AppCompatActivity implements Hear
                     public void run() {
 //                       textStatus.setText(bandDistanceEvent.getMotionType().toString());
                         movementSensorItems.get(2).setSensorValue(String.format("%s", bandDistanceEvent.getMotionType().toString()));
+                        ImageView asState = (ImageView) findViewById(R.id.imageView);
+                        TextView textActionState = (TextView) findViewById(R.id.text_action_state);
+                        /*
+                        if (bandDistanceEvent.getMotionType().toString() == "WALKING") {
+                            asState.setBackgroundDrawable(getResources().getDrawable(R.drawable.aswalking));
+                            textActionState.setText("WALKING");
+                        } else if (bandDistanceEvent.getMotionType().toString() == "JOGGING") {
+                            textActionState.setText("JOGGING");
+                            asState.setBackgroundDrawable(getResources().getDrawable(R.drawable.asjogging));
+                        } else if (bandDistanceEvent.getMotionType().toString() == "IDLE") {
+                            asState.setBackgroundDrawable(getResources().getDrawable(R.drawable.asidle));
+                            textActionState.setText("IDLE");
+                        }
+                        */
                     }
                 });
             }
@@ -435,7 +459,7 @@ public class ActionRecognitionActivity extends AppCompatActivity implements Hear
 
         gyroListener = new BandGyroscopeEventListener() {
             @Override
-            public void onBandGyroscopeChanged(BandGyroscopeEvent bandGyroscopeEvent) {
+            public void onBandGyroscopeChanged(final BandGyroscopeEvent bandGyroscopeEvent) {
 
                 gyroAngularXList.add(new Double(bandGyroscopeEvent.getAngularVelocityX()));
                 gyroAngularYList.add(new Double(bandGyroscopeEvent.getAngularVelocityY()));
@@ -475,6 +499,14 @@ public class ActionRecognitionActivity extends AppCompatActivity implements Hear
                     gyroAccelXList.clear();
                     gyroAccelYList.clear();
                     gyroAccelZList.clear();
+
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+//                            TextView numVx = (TextView) findViewById(R.id.numVx);
+//                            numVx.setText(""+currentGyroAngularVelocity[0]);
+                        }
+                    });
                 }
                 runOnUiThread(new Runnable() {
                     @Override
@@ -483,6 +515,31 @@ public class ActionRecognitionActivity extends AppCompatActivity implements Hear
                                 currentGyroAngularVelocity[0], currentGyroAngularVelocity[1], currentGyroAngularVelocity[2],
                                 currentGyroAccel[0], currentGyroAccel[1], currentGyroAccel[2]));
                         addGyroAngularPointToGraph();
+
+                        vxCounter++;
+                        totalVx += bandGyroscopeEvent.getAngularVelocityZ();
+                        TextView numVx = (TextView) findViewById(R.id.numVx);
+
+                        ImageView asState = (ImageView) findViewById(R.id.imageView);
+                        TextView textActionState = (TextView) findViewById(R.id.text_action_state);
+                        if (vxCounter == 64) {
+                            TextView tv = (TextView) findViewById(R.id.numVx);
+                            tv.setText("" + Math.abs(totalVx / vxCounter));
+
+                            if (Math.abs(totalVx / vxCounter) > 5 && Math.abs(totalVx / vxCounter) <= 30) {
+                                asState.setBackgroundDrawable(getResources().getDrawable(R.drawable.aswalking));
+                                textActionState.setText("WALKING");
+                            } else if (Math.abs(totalVx / vxCounter) > 30) {
+                                textActionState.setText("JOGGING");
+                                asState.setBackgroundDrawable(getResources().getDrawable(R.drawable.asjogging));
+                            } else {
+                                asState.setBackgroundDrawable(getResources().getDrawable(R.drawable.asidle));
+                                textActionState.setText("IDLE");
+                            }
+
+                            vxCounter = 0;
+                            totalVx = 0;
+                        }
                     }
                 });
             }

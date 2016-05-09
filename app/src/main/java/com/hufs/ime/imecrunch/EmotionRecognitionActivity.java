@@ -15,6 +15,12 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
 import com.github.clans.fab.FloatingActionMenu;
 import com.jjoe64.graphview.GraphView;
 import com.jjoe64.graphview.LegendRenderer;
@@ -36,12 +42,18 @@ import com.microsoft.band.sensors.BandSkinTemperatureEvent;
 import com.microsoft.band.sensors.BandSkinTemperatureEventListener;
 import com.microsoft.band.sensors.GsrSampleRate;
 import com.microsoft.band.sensors.HeartRateConsentListener;
+import com.opencsv.CSVReader;
 import com.opencsv.CSVWriter;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.FileWriter;
+import java.io.IOException;
+import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -75,13 +87,13 @@ public class EmotionRecognitionActivity extends AppCompatActivity implements Hea
     private GraphView rrIntervalGraphView, gsrGraphView;
     private LineGraphSeries<DataPoint> rrIntervalSeries, gsrSeries;
 
-    private com.github.clans.fab.FloatingActionButton btnHappy, btnSad;
+    private com.github.clans.fab.FloatingActionButton btnHappy, btnSad, btnNeutral;
     private int rrSeriesCounter, gsrSeriesCounter;
 
     double totalRR = 0;
     int rrCounter = 0;
 
-    double rrThreshold = 0.15;
+    double rrThreshold = 0.05;
 
     private void addRrIntervalPointToGraph() {
         rrIntervalSeries.appendData(new DataPoint(rrSeriesCounter, currentRRInterval), true, 40);
@@ -91,6 +103,48 @@ public class EmotionRecognitionActivity extends AppCompatActivity implements Hea
     private void addGsrPointToGraph() {
         gsrSeries.appendData(new DataPoint(gsrSeriesCounter, currentGsr), true, 40);
         gsrSeriesCounter++;
+    }
+
+    public void beginSynchronization() {
+
+        RequestQueue queue = Volley.newRequestQueue(this);
+
+        String baseDir = android.os.Environment.getExternalStorageDirectory().getAbsolutePath();
+        String status = android.os.Environment.getExternalStorageState();
+        String fileName = "emotion.csv";
+
+
+        final String filePath = baseDir + File.separator + fileName;
+        try {
+            CSVReader reader = new CSVReader(new FileReader(filePath));
+            String[] row;
+
+            while ((row = reader.readNext()) != null) {
+                String param = Arrays.toString(row).replace("[", "").replace("]", "").replace(", ", ",");
+                param = URLEncoder.encode(param, "utf-8");
+                String url = "http://biztix.hufs.ac.kr/sa/sa-crunch-connector-emotion.jsp?sensor=" + param;
+                StringRequest req = new StringRequest(Request.Method.GET, url, new Response.Listener<String>() {
+                    @Override
+                    public void onResponse(String response) {
+
+                    }
+                }, new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+//                        Toast.makeText(getBaseContext(), "One or more data were failed to synchronize", Toast.LENGTH_SHORT).show();
+                    }
+                });
+
+                queue.add(req);
+
+            }
+
+            Toast.makeText(getBaseContext(), "Synchronization performed", Toast.LENGTH_SHORT).show();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -313,6 +367,18 @@ public class EmotionRecognitionActivity extends AppCompatActivity implements Hea
             }
         });
 
+        btnNeutral= (com.github.clans.fab.FloatingActionButton) findViewById(R.id.fab_neutral);
+        btnNeutral.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                labelType = "NEUTRAL";
+                recording = true;
+                m.setVisible(true);
+                menu.close(true);
+                menu.hideMenu(true);
+            }
+        });
+
 
         new GsrSubscriptionTask().execute();
         new HrSubscriptionTask().execute();
@@ -477,7 +543,8 @@ public class EmotionRecognitionActivity extends AppCompatActivity implements Hea
             m.setVisible(false);
             menu.showMenu(true);
         } else if (id == R.id.action_sync) {
-            // beginSynchronization();
+             beginSynchronization();
+//            Toast.makeText(this, "test", Toast.LENGTH_SHORT).show();
         }
 
         return super.onOptionsItemSelected(item);

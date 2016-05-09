@@ -19,7 +19,7 @@
 
     <com.jjoe64.graphview.GraphView
         android:layout_width="match_parent"
-        android:layout_height="140dip"
+        android:layout_height="200dip"
         android:id="@+id/graph_emotion" />
 
     <TextView
@@ -42,7 +42,7 @@
         android:id="@+id/image_emotion_state"
         android:layout_width="128dip"
         android:layout_height="128dip"
-        android:layout_marginTop="200dip"
+        android:layout_marginTop="210dip"
         android:layout_gravity="center_horizontal"
         android:background="@drawable/neutral"/>
 
@@ -51,7 +51,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textAppearance="@style/TextAppearance.AppCompat.Large"
-        android:layout_marginTop="328dip"
+        android:layout_marginTop="338dip"
         android:text="NEUTRAL"
         android:layout_gravity="center_horizontal"/>
 
@@ -75,19 +75,27 @@
         <com.github.clans.fab.FloatingActionButton
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:src="@drawable/ic_directions_walk_white_48dp"
-            app:fab_colorNormal="#DA4336"
-            app:fab_colorPressed="#E75043"
+            android:src="@drawable/ic_happy"
+            app:fab_colorNormal="#b6ecec"
+            app:fab_colorPressed="#b6ecec"
             fab:fab_label="Happy"
             android:id="@+id/fab_happy" />
         <com.github.clans.fab.FloatingActionButton
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:src="@drawable/ic_directions_run_white_48dp"
-            app:fab_colorNormal="#DA4336"
-            app:fab_colorPressed="#E75043"
+            android:src="@drawable/ic_sad"
+            app:fab_colorNormal="#b6ecec"
+            app:fab_colorPressed="#b6ecec"
             fab:fab_label="Sad"
             android:id="@+id/fab_sad" />
+        <com.github.clans.fab.FloatingActionButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/ic_neutral"
+            app:fab_colorNormal="#b6ecec"
+            app:fab_colorPressed="#b6ecec"
+            fab:fab_label="Neutral"
+            android:id="@+id/fab_neutral" />
 
     </com.github.clans.fab.FloatingActionMenu>
 
