@@ -20,7 +20,7 @@ public class MainMenuActivity extends AppCompatActivity {
         menuActivity = (Button) findViewById(R.id.btn_menu_activity);
         menuEmotion = (Button) findViewById(R.id.btn_menu_emotion);
 
-
+        menuActivity.setBackgroundDrawable(getResources().getDrawable(R.drawable.btnar));
         menuActivity.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -28,6 +28,7 @@ public class MainMenuActivity extends AppCompatActivity {
             }
         });
 
+        menuEmotion.setBackgroundDrawable(getResources().getDrawable(R.drawable.btner));
         menuEmotion.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {

@@ -1,32 +1,33 @@
 package com.hufs.ime.imecrunch;
 
 import android.content.Intent;
+import android.graphics.Color;
+import android.media.Image;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.BaseAdapter;
+import android.widget.ImageView;
 import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.github.clans.fab.FloatingActionMenu;
+import com.jjoe64.graphview.GraphView;
+import com.jjoe64.graphview.LegendRenderer;
+import com.jjoe64.graphview.series.DataPoint;
+import com.jjoe64.graphview.series.LineGraphSeries;
 import com.microsoft.band.BandClient;
 import com.microsoft.band.BandClientManager;
 import com.microsoft.band.BandException;
-import com.microsoft.band.BandIOException;
 import com.microsoft.band.BandInfo;
 import com.microsoft.band.ConnectionState;
 import com.microsoft.band.UserConsent;
-import com.microsoft.band.sensors.BandAccelerometerEventListener;
-import com.microsoft.band.sensors.BandDistanceEventListener;
 import com.microsoft.band.sensors.BandGsrEvent;
 import com.microsoft.band.sensors.BandGsrEventListener;
-import com.microsoft.band.sensors.BandGyroscopeEventListener;
 import com.microsoft.band.sensors.BandHeartRateEvent;
 import com.microsoft.band.sensors.BandHeartRateEventListener;
 import com.microsoft.band.sensors.BandRRIntervalEvent;
@@ -71,7 +72,26 @@ public class EmotionRecognitionActivity extends AppCompatActivity implements Hea
     double currentRRInterval, currentSkinTemperature;
     private MenuItem m;
 
+    private GraphView rrIntervalGraphView, gsrGraphView;
+    private LineGraphSeries<DataPoint> rrIntervalSeries, gsrSeries;
+
     private com.github.clans.fab.FloatingActionButton btnHappy, btnSad;
+    private int rrSeriesCounter, gsrSeriesCounter;
+
+    double totalRR = 0;
+    int rrCounter = 0;
+
+    double rrThreshold = 0.15;
+
+    private void addRrIntervalPointToGraph() {
+        rrIntervalSeries.appendData(new DataPoint(rrSeriesCounter, currentRRInterval), true, 40);
+        rrSeriesCounter++;
+    }
+
+    private void addGsrPointToGraph() {
+        gsrSeries.appendData(new DataPoint(gsrSeriesCounter, currentGsr), true, 40);
+        gsrSeriesCounter++;
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -106,6 +126,33 @@ public class EmotionRecognitionActivity extends AppCompatActivity implements Hea
         s5.setSensorName("Status");
         s5.setSensorValue("-");
         movementSensorItems.add(s5);
+
+        /**
+         * graphview settings
+         */
+
+        rrIntervalGraphView = (GraphView) findViewById(R.id.graph_emotion);
+        rrIntervalSeries = new LineGraphSeries<>();
+        rrIntervalSeries.setTitle("RR-Interval");
+        rrIntervalGraphView.getViewport().setXAxisBoundsManual(true);
+        rrIntervalGraphView.getViewport().setMaxX(40);
+        rrIntervalGraphView.getViewport().setMinX(0);
+        rrIntervalGraphView.getViewport().setYAxisBoundsManual(true);
+        rrIntervalGraphView.getViewport().setMaxY(1.5);
+        rrIntervalGraphView.getViewport().setMinY(0);
+        rrIntervalGraphView.getGridLabelRenderer().setHorizontalLabelsVisible(false);
+        rrIntervalGraphView.getLegendRenderer().setVisible(true);
+        rrIntervalGraphView.getLegendRenderer().setBackgroundColor(Color.WHITE);
+        rrIntervalGraphView.getLegendRenderer().setAlign(LegendRenderer.LegendAlign.BOTTOM);
+        rrIntervalGraphView.addSeries(rrIntervalSeries);
+
+        gsrGraphView = (GraphView) findViewById(R.id.graph_emotion_gsr);
+        gsrSeries = new LineGraphSeries<>();
+        gsrSeries.setTitle("GSR");
+        gsrGraphView.getViewport().setXAxisBoundsManual(true);
+        gsrGraphView.getViewport().setMaxX(40);
+        gsrGraphView.getViewport().setMinX(0);
+        gsrGraphView.addSeries(gsrSeries);
 
         writeCSVTimer = new Timer();
         writeCSVTimer.scheduleAtFixedRate(new TimerTask() {
@@ -162,7 +209,8 @@ public class EmotionRecognitionActivity extends AppCompatActivity implements Hea
                     public void run() {
                         currentGsr = bandGsrEvent.getResistance();
                         movementSensorItems.get(1).setSensorValue("" + bandGsrEvent.getResistance());
-                        ((BaseAdapter) sensorListView.getAdapter()).notifyDataSetChanged();
+                        addGsrPointToGraph();
+//                        ((BaseAdapter) sensorListView.getAdapter()).notifyDataSetChanged();
                     }
                 });
             }
@@ -176,21 +224,51 @@ public class EmotionRecognitionActivity extends AppCompatActivity implements Hea
                     public void run() {
                         currentHeartRate = bandHeartRateEvent.getHeartRate();
                         movementSensorItems.get(0).setSensorValue("" + bandHeartRateEvent.getHeartRate());
-                        ((BaseAdapter) sensorListView.getAdapter()).notifyDataSetChanged();
+//                        ((BaseAdapter) sensorListView.getAdapter()).notifyDataSetChanged();
                     }
                 });
             }
         };
 
+
         rrIntervalEventListener = new BandRRIntervalEventListener() {
             @Override
             public void onBandRRIntervalChanged(final BandRRIntervalEvent bandRRIntervalEvent) {
+
                 runOnUiThread(new Runnable() {
+
+
                     @Override
                     public void run() {
                         currentRRInterval = bandRRIntervalEvent.getInterval();
                         movementSensorItems.get(2).setSensorValue("" + bandRRIntervalEvent.getInterval());
-                        ((BaseAdapter) sensorListView.getAdapter()).notifyDataSetChanged();
+//                        ((BaseAdapter) sensorListView.getAdapter()).notifyDataSetChanged();
+                        addRrIntervalPointToGraph();
+
+                        rrCounter++;
+                        totalRR += bandRRIntervalEvent.getInterval();
+
+                        if (rrCounter == 5) {
+                            TextView tv = (TextView) findViewById(R.id.text_rr_interval);
+                            tv.setText("" + (totalRR / rrCounter));
+
+                            TextView tvEs = (TextView) findViewById(R.id.text_emotion_state);
+                            ImageView imEmotionState = (ImageView) findViewById(R.id.image_emotion_state);
+                            if (totalRR / rrCounter <= 0.70 + rrThreshold) {
+                                tvEs.setText("HAPPY");
+                                imEmotionState.setBackgroundDrawable(getResources().getDrawable(R.drawable.happy));
+                            } else if(totalRR / rrCounter >= 1.00 + rrThreshold) {
+                                tvEs.setText("SAD");
+                                imEmotionState.setBackgroundDrawable(getResources().getDrawable(R.drawable.sad));
+                            } else {
+                                tvEs.setText("NEUTRAL");
+                                imEmotionState.setBackgroundDrawable(getResources().getDrawable(R.drawable.neutral));
+                            }
+                            rrCounter = 0;
+                            totalRR = 0;
+
+
+                        }
                     }
                 });
             }
@@ -204,7 +282,7 @@ public class EmotionRecognitionActivity extends AppCompatActivity implements Hea
                     public void run() {
                         currentSkinTemperature = bandSkinTemperatureEvent.getTemperature();
                         movementSensorItems.get(3).setSensorValue("" + bandSkinTemperatureEvent.getTemperature());
-                        ((BaseAdapter) sensorListView.getAdapter()).notifyDataSetChanged();
+//                        ((BaseAdapter) sensorListView.getAdapter()).notifyDataSetChanged();
                     }
                 });
             }
@@ -337,15 +415,15 @@ public class EmotionRecognitionActivity extends AppCompatActivity implements Hea
     @Override
     protected void onPause() {
         super.onPause();
-        if (bandClient != null) {
-            try {
-                bandClient.getSensorManager().unregisterGsrEventListener(gsrListener);
-                bandClient.getSensorManager().unregisterHeartRateEventListener(heartRateEventListener);
-                bandClient.getSensorManager().unregisterRRIntervalEventListener(rrIntervalEventListener);
-                bandClient.getSensorManager().unregisterSkinTemperatureEventListener(skinTemperatureEventListener);
-            } catch (BandIOException e) {
-            }
-        }
+//        if (bandClient != null) {
+//            try {
+//                bandClient.getSensorManager().unregisterGsrEventListener(gsrListener);
+//                bandClient.getSensorManager().unregisterHeartRateEventListener(heartRateEventListener);
+//                bandClient.getSensorManager().unregisterRRIntervalEventListener(rrIntervalEventListener);
+//                bandClient.getSensorManager().unregisterSkinTemperatureEventListener(skinTemperatureEventListener);
+//            } catch (BandIOException e) {
+//            }
+//        }
     }
 
     @Override
@@ -353,6 +431,10 @@ public class EmotionRecognitionActivity extends AppCompatActivity implements Hea
         if (bandClient != null) {
             try {
                 bandClient.disconnect().await();
+                bandClient.getSensorManager().unregisterGsrEventListener(gsrListener);
+                bandClient.getSensorManager().unregisterHeartRateEventListener(heartRateEventListener);
+                bandClient.getSensorManager().unregisterRRIntervalEventListener(rrIntervalEventListener);
+                bandClient.getSensorManager().unregisterSkinTemperatureEventListener(skinTemperatureEventListener);
             } catch (InterruptedException e) {
                 // Do nothing as this is happening during destroy
             } catch (BandException e) {

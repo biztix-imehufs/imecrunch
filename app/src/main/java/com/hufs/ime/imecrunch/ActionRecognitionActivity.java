@@ -4,6 +4,7 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -25,6 +26,9 @@ import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 import com.github.clans.fab.FloatingActionMenu;
+import com.jjoe64.graphview.GraphView;
+import com.jjoe64.graphview.series.DataPoint;
+import com.jjoe64.graphview.series.LineGraphSeries;
 import com.microsoft.band.BandClient;
 import com.microsoft.band.BandClientManager;
 import com.microsoft.band.BandException;
@@ -49,6 +53,7 @@ import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -77,6 +82,11 @@ public class ActionRecognitionActivity extends AppCompatActivity implements Hear
     private TextView textHeart;
     private com.github.clans.fab.FloatingActionButton btnWalking, btnRunning, btnIdle;
     private FloatingActionMenu menu;
+
+    private GraphView graphView;
+    LineGraphSeries<DataPoint> accxSeries, accySeries, acczSeries;
+    LineGraphSeries<DataPoint> gyroxSeries, gyroySeries, gyrozSeries;
+
 
     public static String fwVersion;
     public static String hwVersion;
@@ -116,6 +126,7 @@ public class ActionRecognitionActivity extends AppCompatActivity implements Hear
     CSVWriter csvWriter;
     FileWriter fileWriter;
     String labelType;
+    private long seriesCounter;
 
     private boolean getConnectedBandClient() throws InterruptedException, BandException {
         if (bandClient == null) {
@@ -166,6 +177,20 @@ public class ActionRecognitionActivity extends AppCompatActivity implements Hear
         });
     }
 
+    private void addAccelerometerPointToGraph() {
+        accxSeries.appendData(new DataPoint(seriesCounter, currentAccelerometer[0]), true, 200);
+        accySeries.appendData(new DataPoint(seriesCounter, currentAccelerometer[1]), true, 200);
+        acczSeries.appendData(new DataPoint(seriesCounter, currentAccelerometer[2]), true, 200);
+        seriesCounter++;
+    }
+
+    private void addGyroAngularPointToGraph() {
+        gyroxSeries.appendData(new DataPoint(seriesCounter, currentGyroAngularVelocity[0]), true, 40);
+        gyroySeries.appendData(new DataPoint(seriesCounter, currentGyroAngularVelocity[1]), true, 40);
+        gyrozSeries.appendData(new DataPoint(seriesCounter, currentGyroAngularVelocity[2]), true, 40);
+        seriesCounter++;
+    }
+
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
@@ -202,6 +227,8 @@ public class ActionRecognitionActivity extends AppCompatActivity implements Hear
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
+        seriesCounter = 0;
+
         getSupportActionBar().setTitle("Activity Recognition");
         if (simulationMode)
             getSupportActionBar().setTitle("Activity Recognition (simulated)");
@@ -225,7 +252,28 @@ public class ActionRecognitionActivity extends AppCompatActivity implements Hear
 
 
         final ListView sensorListView = (ListView) findViewById(R.id.list_view_sensors);
-        sensorListView.setAdapter(new MovementSensorListAdapter(this, movementSensorItems));
+//        sensorListView.setAdapter(new MovementSensorListAdapter(this, movementSensorItems));
+
+        graphView = (GraphView) findViewById(R.id.graph);
+        accxSeries = new LineGraphSeries<>(); accxSeries.setColor(Color.rgb(255, 0, 0));
+        accySeries = new LineGraphSeries<>(); accySeries.setColor(Color.rgb(0, 255, 0));
+        acczSeries = new LineGraphSeries<>(); acczSeries.setColor(Color.rgb(0, 0, 255));
+
+        gyroxSeries = new LineGraphSeries<>(); gyroxSeries.setColor(Color.rgb(255, 0, 0));
+        gyroySeries = new LineGraphSeries<>(); gyroySeries.setColor(Color.rgb(0, 255, 0));
+        gyrozSeries = new LineGraphSeries<>(); gyrozSeries.setColor(Color.rgb(0, 0, 255));
+
+        graphView.getViewport().setXAxisBoundsManual(true);
+        graphView.getViewport().setMaxX(40);
+        graphView.getViewport().setMinX(0);
+        graphView.getViewport().setYAxisBoundsManual(true);
+        graphView.getViewport().setMaxY(1000);
+        graphView.getViewport().setMinY(-1000);
+        graphView.getGridLabelRenderer().setHorizontalLabelsVisible(false);
+
+        graphView.addSeries(gyroxSeries);
+        graphView.addSeries(gyroySeries);
+        graphView.addSeries(gyrozSeries);
 
         pairedBands = BandClientManager.getInstance().getPairedBands();
 
@@ -259,19 +307,6 @@ public class ActionRecognitionActivity extends AppCompatActivity implements Hear
             }
         }, 0, 100);
 
-//        if (simulationMode) {
-        Timer simulationRunner = new Timer();
-            /*
-            simulationRunner.scheduleAtFixedRate(new TimerTask() {
-                @Override
-                public void run() {
-//                    movementSensorItems.get(0).setSensorValue(String.format("X: %f\nY: %f\nZ: %f", Math.random(), Math.random(), Math.random()));
-//                    ((BaseAdapter) sensorListView.getAdapter()).notifyDataSetChanged();
-
-                }
-            }, 0, 100);
-            */
-//        } else {
 
         /**
          * Begin recording csv
@@ -327,9 +362,9 @@ public class ActionRecognitionActivity extends AppCompatActivity implements Hear
                      * ACTUAL CSV WRITING
                      */
                     String[] row = {new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date()),
-                            String.valueOf(currentAccelerometer[0]), String.valueOf(currentAccelerometer[1]), String.valueOf(currentAccelerometer[2]),
-                            String.valueOf(currentGyroAngularVelocity[0]), String.valueOf(currentGyroAngularVelocity[1]), String.valueOf(currentGyroAngularVelocity[2]),
-                            String.valueOf(currentGyroAccel[0]), String.valueOf(currentGyroAccel[1]), String.valueOf(currentGyroAccel[2]),
+                            String.format("%.4f", currentAccelerometer[0]), String.format("%.4f", currentAccelerometer[1]), String.format("%.4f", currentAccelerometer[2]),
+                            String.format("%.4f", currentGyroAngularVelocity[0]), String.format("%.4f", currentGyroAngularVelocity[1]), String.format("%.4f", currentGyroAngularVelocity[2]),
+                            String.format("%.4f", currentGyroAccel[0]), String.format("%.4f", currentGyroAccel[1]), String.format("%.4f", currentGyroAccel[2]),
                             labelType};
                     csvWriter.writeNext(row);
                     try {
@@ -371,8 +406,8 @@ public class ActionRecognitionActivity extends AppCompatActivity implements Hear
                     public void run() {
                         //s2.setSensorValue("Angular Velocity\nX:\nY:\nZ:\n\nAcceleration\nX:\nY:\nZ:");
                         movementSensorItems.get(0).setSensorValue(String.format("X: %f\nY: %f\nZ: %f", currentAccelerometer[0], currentAccelerometer[1], currentAccelerometer[2]));
-                        ((BaseAdapter) sensorListView.getAdapter()).notifyDataSetChanged();
-
+//                        ((BaseAdapter) sensorListView.getAdapter()).notifyDataSetChanged();
+//                        addAccelerometerPointToGraph();
                     }
                 });
             }
@@ -434,15 +469,6 @@ public class ActionRecognitionActivity extends AppCompatActivity implements Hear
                     currentGyroAccel[1] = gyroAccelYMean;
                     currentGyroAccel[2] = gyroAccelZMean;
 
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            movementSensorItems.get(1).setSensorValue(String.format("Angular Velocity\nX: %f\nY: %f\nZ: %f\n\nAcceleration\nX: %f\nY: %f\nZ: %f",
-                                    currentGyroAngularVelocity[0], currentGyroAngularVelocity[1], currentGyroAngularVelocity[2],
-                                    currentGyroAccel[0], currentGyroAccel[1], currentGyroAccel[2]));
-                        }
-                    });
-
                     gyroAngularXList.clear();
                     gyroAngularYList.clear();
                     gyroAngularZList.clear();
@@ -450,6 +476,15 @@ public class ActionRecognitionActivity extends AppCompatActivity implements Hear
                     gyroAccelYList.clear();
                     gyroAccelZList.clear();
                 }
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        movementSensorItems.get(1).setSensorValue(String.format("Angular Velocity\nX: %f\nY: %f\nZ: %f\n\nAcceleration\nX: %f\nY: %f\nZ: %f",
+                                currentGyroAngularVelocity[0], currentGyroAngularVelocity[1], currentGyroAngularVelocity[2],
+                                currentGyroAccel[0], currentGyroAccel[1], currentGyroAccel[2]));
+                        addGyroAngularPointToGraph();
+                    }
+                });
             }
         };
 
@@ -537,7 +572,7 @@ public class ActionRecognitionActivity extends AppCompatActivity implements Hear
 
         String baseDir = android.os.Environment.getExternalStorageDirectory().getAbsolutePath();
         String status = android.os.Environment.getExternalStorageState();
-        String fileName = "imecrunch.csv";
+        String fileName = "action.csv";
 
 
         final String filePath = baseDir + File.separator + fileName;
@@ -603,19 +638,21 @@ public class ActionRecognitionActivity extends AppCompatActivity implements Hear
     @Override
     protected void onPause() {
         super.onPause();
-        if (bandClient != null) {
-            try {
-                bandClient.getSensorManager().unregisterAccelerometerEventListener(accelerometerListener);
-                bandClient.getSensorManager().unregisterGyroscopeEventListener(gyroListener);
-            } catch (BandIOException e) {
-                appendToUI(e.getMessage());
-            }
-        }
+//        if (bandClient != null) {
+//            try {
+//                bandClient.getSensorManager().unregisterAccelerometerEventListener(accelerometerListener);
+//                bandClient.getSensorManager().unregisterGyroscopeEventListener(gyroListener);
+//            } catch (BandIOException e) {
+//                appendToUI(e.getMessage());
+//            }
+//        }
     }
 
     protected void onDestroy() {
         if (bandClient != null) {
             try {
+                bandClient.getSensorManager().unregisterAccelerometerEventListener(accelerometerListener);
+                bandClient.getSensorManager().unregisterGyroscopeEventListener(gyroListener);
                 bandClient.disconnect().await();
             } catch (InterruptedException e) {
                 // Do nothing as this is happening during destroy

@@ -106,11 +106,10 @@
     <!--</RelativeLayout>-->
 
 
-    <ListView
-        android:id="@+id/list_view_sensors"
-        android:layout_width="fill_parent"
-        android:layout_height="fill_parent"
-        android:layout_gravity="right|top" />
+    <com.jjoe64.graphview.GraphView
+        android:layout_width="match_parent"
+        android:layout_height="200dip"
+        android:id="@+id/graph" />
 
     <com.github.clans.fab.FloatingActionMenu
         android:layout_width="wrap_content"
