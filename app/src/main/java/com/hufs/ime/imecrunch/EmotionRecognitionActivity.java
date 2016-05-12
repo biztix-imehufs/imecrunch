@@ -187,7 +187,7 @@ public class EmotionRecognitionActivity extends AppCompatActivity implements Hea
 
         rrIntervalGraphView = (GraphView) findViewById(R.id.graph_emotion);
         rrIntervalSeries = new LineGraphSeries<>();
-        rrIntervalSeries.setTitle("RR-Interval");
+        rrIntervalSeries.setTitle("RR-Interval (s)");
         rrIntervalGraphView.getViewport().setXAxisBoundsManual(true);
         rrIntervalGraphView.getViewport().setMaxX(40);
         rrIntervalGraphView.getViewport().setMinX(0);
@@ -196,7 +196,7 @@ public class EmotionRecognitionActivity extends AppCompatActivity implements Hea
         rrIntervalGraphView.getViewport().setMinY(0);
         rrIntervalGraphView.getGridLabelRenderer().setHorizontalLabelsVisible(false);
         rrIntervalGraphView.getLegendRenderer().setVisible(true);
-        rrIntervalGraphView.getLegendRenderer().setBackgroundColor(Color.WHITE);
+        rrIntervalGraphView.getLegendRenderer().setBackgroundColor(Color.argb(80, 255, 255, 255));
         rrIntervalGraphView.getLegendRenderer().setAlign(LegendRenderer.LegendAlign.BOTTOM);
         rrIntervalGraphView.addSeries(rrIntervalSeries);
 

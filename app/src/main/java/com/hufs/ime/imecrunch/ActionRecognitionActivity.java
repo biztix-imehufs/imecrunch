@@ -279,16 +279,16 @@ public class ActionRecognitionActivity extends AppCompatActivity implements Hear
         graphView.getViewport().setMaxX(100);
         graphView.getViewport().setMinX(0);
         graphView.getViewport().setYAxisBoundsManual(true);
-        graphView.getViewport().setMaxY(1000);
-        graphView.getViewport().setMinY(-1000);
+        graphView.getViewport().setMaxY(700);
+        graphView.getViewport().setMinY(-700);
         graphView.getGridLabelRenderer().setHorizontalLabelsVisible(false);
         graphView.getLegendRenderer().setVisible(true);
         graphView.getLegendRenderer().setAlign(LegendRenderer.LegendAlign.BOTTOM);
-        graphView.getLegendRenderer().setBackgroundColor(Color.WHITE);
+        graphView.getLegendRenderer().setBackgroundColor(Color.argb(80, 255, 255, 255));
 
-        gyroxSeries.setTitle("V Ang X");
-        gyroySeries.setTitle("V Ang Y");
-        gyrozSeries.setTitle("V Ang Z");
+        gyroxSeries.setTitle("Ang. Vel. X (rad/s)");
+        gyroySeries.setTitle("Ang. Vel. Y (rad/s)");
+        gyrozSeries.setTitle("Ang. Vel. Z (rad/s)");
 
         graphView.addSeries(gyroxSeries);
         graphView.addSeries(gyroySeries);
@@ -486,9 +486,11 @@ public class ActionRecognitionActivity extends AppCompatActivity implements Hear
                     final double gyroAccelYMean = StdStats.mean(ArrayUtils.toPrimitive(dGyroAccelY));
                     final double gyroAccelZMean = StdStats.mean(ArrayUtils.toPrimitive(dGyroAccelZ));
 
+                    /*
                     currentGyroAngularVelocity[0] = gyroAngularXMean;
                     currentGyroAngularVelocity[1] = gyroAngularYMean;
                     currentGyroAngularVelocity[2] = gyroAngularZMean;
+                    */
                     currentGyroAccel[0] = gyroAccelXMean;
                     currentGyroAccel[1] = gyroAccelYMean;
                     currentGyroAccel[2] = gyroAccelZMean;
@@ -514,22 +516,25 @@ public class ActionRecognitionActivity extends AppCompatActivity implements Hear
                         movementSensorItems.get(1).setSensorValue(String.format("Angular Velocity\nX: %f\nY: %f\nZ: %f\n\nAcceleration\nX: %f\nY: %f\nZ: %f",
                                 currentGyroAngularVelocity[0], currentGyroAngularVelocity[1], currentGyroAngularVelocity[2],
                                 currentGyroAccel[0], currentGyroAccel[1], currentGyroAccel[2]));
+                        currentGyroAngularVelocity[0] = bandGyroscopeEvent.getAngularVelocityX();
+                        currentGyroAngularVelocity[1] = bandGyroscopeEvent.getAngularVelocityY();
+                        currentGyroAngularVelocity[2] = bandGyroscopeEvent.getAngularVelocityZ();
                         addGyroAngularPointToGraph();
 
-                        vxCounter++;
-                        totalVx += bandGyroscopeEvent.getAngularVelocityZ();
+
                         TextView numVx = (TextView) findViewById(R.id.numVx);
 
                         ImageView asState = (ImageView) findViewById(R.id.imageView);
                         TextView textActionState = (TextView) findViewById(R.id.text_action_state);
-                        if (vxCounter == 64) {
+                        if (vxCounter == 128) {
                             TextView tv = (TextView) findViewById(R.id.numVx);
-                            tv.setText("" + Math.abs(totalVx / vxCounter));
+                            double val = Math.pow((totalVx / vxCounter), 1);
+                            tv.setText("" + val);
 
-                            if (Math.abs(totalVx / vxCounter) > 5 && Math.abs(totalVx / vxCounter) <= 30) {
+                            if (val > 50 && val <= 200) {
                                 asState.setBackgroundDrawable(getResources().getDrawable(R.drawable.aswalking));
                                 textActionState.setText("WALKING");
-                            } else if (Math.abs(totalVx / vxCounter) > 30) {
+                            } else if (val > 200) {
                                 textActionState.setText("JOGGING");
                                 asState.setBackgroundDrawable(getResources().getDrawable(R.drawable.asjogging));
                             } else {
@@ -539,6 +544,9 @@ public class ActionRecognitionActivity extends AppCompatActivity implements Hear
 
                             vxCounter = 0;
                             totalVx = 0;
+                        }else {
+                            vxCounter++;
+                            totalVx += Math.abs(bandGyroscopeEvent.getAngularVelocityZ());
                         }
                     }
                 });
