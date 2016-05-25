@@ -100,6 +100,10 @@ public class ActionRecognitionActivity extends AppCompatActivity implements Hear
     private BandGsrEventListener gsrListener;
     private BandGyroscopeEventListener gyroListener;
     private BandDistanceEventListener distanceListener;
+    private BandUVEventListener uvEventListener;
+    private BandAmbientLightEventListener ambientLightEventListener;
+    private BandBarometerEventListener barometerEventListener;
+    private BandContactEventListener contactState;
 
     public static double[] currentAccelerometer = new double[3];
     private double[] currentGyroAccel = new double[3];
@@ -225,6 +229,7 @@ public class ActionRecognitionActivity extends AppCompatActivity implements Hear
     }
 
     Timer updateSensorTimer, writeCSVTimer;
+    MovementSensorItem accelSensorItem, gyroSensorItem, s3, uvSensorItem, ambientSensorItem, barometerSensorItem, contactSensorItem;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -233,6 +238,8 @@ public class ActionRecognitionActivity extends AppCompatActivity implements Hear
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+
+        Toast.makeText(this, android.os.Environment.getExternalStorageDirectory().getAbsolutePath() + "/DB", Toast.LENGTH_SHORT).show();
 
         seriesCounter = 0;
 
@@ -244,22 +251,45 @@ public class ActionRecognitionActivity extends AppCompatActivity implements Hear
          * LIST VIEW OF SENSORS
          */
         final ArrayList<MovementSensorItem> movementSensorItems = new ArrayList<>();
-        MovementSensorItem s = new MovementSensorItem();
-        s.setSensorName("Accelerometer");
-        s.setSensorValue("X:\nY:\nZ:");
-        movementSensorItems.add(s);
-        MovementSensorItem s2 = new MovementSensorItem();
-        s2.setSensorName("Gyroscope");
-        s2.setSensorValue("Angular Velocity\nX:\nY:\nZ:\n\nAcceleration\nX:\nY:\nZ:");
-        movementSensorItems.add(s2);
-        MovementSensorItem s3 = new MovementSensorItem();
-        s3.setSensorName("Status");
+        contactSensorItem = new MovementSensorItem();
+        accelSensorItem = new MovementSensorItem();
+        gyroSensorItem = new MovementSensorItem();
+        uvSensorItem = new MovementSensorItem();
+        ambientSensorItem = new MovementSensorItem();
+        s3 = new MovementSensorItem();
+        barometerSensorItem = new MovementSensorItem();
+
+        contactSensorItem.setSensorName("Sensor Contact Status");
+        contactSensorItem.setSensorValue("-");
+        movementSensorItems.add(contactSensorItem);
+
+        accelSensorItem.setSensorName("Accelerometer");
+        accelSensorItem.setSensorValue("X:\nY:\nZ:");
+        movementSensorItems.add(accelSensorItem);
+
+        gyroSensorItem.setSensorName("Gyroscope");
+        gyroSensorItem.setSensorValue("Angular Velocity\nX:\nY:\nZ:\n\nAcceleration\nX:\nY:\nZ:");
+        movementSensorItems.add(gyroSensorItem);
+
+        s3.setSensorName("Distance Sensor");
         s3.setSensorValue("-");
         movementSensorItems.add(s3);
 
+        uvSensorItem.setSensorName("UV Index Level");
+        uvSensorItem.setSensorValue("-");
+        movementSensorItems.add(uvSensorItem);
+
+        ambientSensorItem.setSensorName("Ambient Light Sensor");
+        ambientSensorItem.setSensorValue("-");
+        movementSensorItems.add(ambientSensorItem);
+
+        barometerSensorItem.setSensorName("Barometer");
+        barometerSensorItem.setSensorValue("-");
+        movementSensorItems.add(barometerSensorItem);
+
 
         final ListView sensorListView = (ListView) findViewById(R.id.list_view_sensors);
-//        sensorListView.setAdapter(new MovementSensorListAdapter(this, movementSensorItems));
+        sensorListView.setAdapter(new MovementSensorListAdapter(this, movementSensorItems));
 
         graphView = (GraphView) findViewById(R.id.graph);
         accxSeries = new LineGraphSeries<>();
@@ -320,7 +350,7 @@ public class ActionRecognitionActivity extends AppCompatActivity implements Hear
                             movementSensorItems.get(1).setSensorValue(String.format("Angular Velocity\nX: %f\nY: %f\nZ: %f\n\nAcceleration\nX: %f\nY: %f\nZ: %f",
                                     Math.random(), Math.random(), Math.random(),
                                     Math.random(), Math.random(), Math.random()));
-                            ((BaseAdapter) sensorListView.getAdapter()).notifyDataSetChanged();
+                            // ((BaseAdapter) sensorListView.getAdapter()).notifyDataSetChanged();
                         }
                     }
                 });
@@ -416,12 +446,14 @@ public class ActionRecognitionActivity extends AppCompatActivity implements Hear
                     @Override
                     public void run() {
                         //s2.setSensorValue("Angular Velocity\nX:\nY:\nZ:\n\nAcceleration\nX:\nY:\nZ:");
-                        movementSensorItems.get(0).setSensorValue(String.format("X: %f\nY: %f\nZ: %f", currentAccelerometer[0], currentAccelerometer[1], currentAccelerometer[2]));
-//                        ((BaseAdapter) sensorListView.getAdapter()).notifyDataSetChanged();
+//                        movementSensorItems.get(0).setSensorValue(String.format("X: %f\nY: %f\nZ: %f", currentAccelerometer[0], currentAccelerometer[1], currentAccelerometer[2]));
+                        accelSensorItem.setSensorValue(String.format("X: %f\nY: %f\nZ: %f", currentAccelerometer[0], currentAccelerometer[1], currentAccelerometer[2]));
+                        ((BaseAdapter) sensorListView.getAdapter()).notifyDataSetChanged();
 //                        addAccelerometerPointToGraph();
                     }
                 });
             }
+
         };
 
         distanceListener = new BandDistanceEventListener() {
@@ -431,7 +463,7 @@ public class ActionRecognitionActivity extends AppCompatActivity implements Hear
                     @Override
                     public void run() {
 //                       textStatus.setText(bandDistanceEvent.getMotionType().toString());
-                        movementSensorItems.get(2).setSensorValue(String.format("%s", bandDistanceEvent.getMotionType().toString()));
+                        movementSensorItems.get(3).setSensorValue(String.format("Speed: %f\nPace: %f", bandDistanceEvent.getSpeed(), bandDistanceEvent.getPace()));
                         ImageView asState = (ImageView) findViewById(R.id.imageView);
                         TextView textActionState = (TextView) findViewById(R.id.text_action_state);
                         /*
@@ -504,20 +536,18 @@ public class ActionRecognitionActivity extends AppCompatActivity implements Hear
                     gyroAccelYList.clear();
                     gyroAccelZList.clear();
 
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-//                            TextView numVx = (TextView) findViewById(R.id.numVx);
-//                            numVx.setText(""+currentGyroAngularVelocity[0]);
-                        }
-                    });
                 }
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        movementSensorItems.get(1).setSensorValue(String.format("Angular Velocity\nX: %f\nY: %f\nZ: %f\n\nAcceleration\nX: %f\nY: %f\nZ: %f",
+//                        movementSensorItems.get(1).setSensorValue(String.format("Angular Velocity\nX: %f\nY: %f\nZ: %f\n\nAcceleration\nX: %f\nY: %f\nZ: %f",
+//                                currentGyroAngularVelocity[0], currentGyroAngularVelocity[1], currentGyroAngularVelocity[2],
+//                                currentGyroAccel[0], currentGyroAccel[1], currentGyroAccel[2]));
+                        gyroSensorItem.setSensorValue(String.format("Angular Velocity\nX: %f\nY: %f\nZ: %f\n\nAcceleration\nX: %f\nY: %f\nZ: %f",
                                 currentGyroAngularVelocity[0], currentGyroAngularVelocity[1], currentGyroAngularVelocity[2],
                                 currentGyroAccel[0], currentGyroAccel[1], currentGyroAccel[2]));
+                        ((BaseAdapter) sensorListView.getAdapter()).notifyDataSetChanged();
+
                         currentGyroAngularVelocity[0] = bandGyroscopeEvent.getAngularVelocityX();
                         currentGyroAngularVelocity[1] = bandGyroscopeEvent.getAngularVelocityY();
                         currentGyroAngularVelocity[2] = bandGyroscopeEvent.getAngularVelocityZ();
@@ -562,6 +592,62 @@ public class ActionRecognitionActivity extends AppCompatActivity implements Hear
                         "Heart Quality: " + bandHeartRateEvent.getQuality().name());
             }
         };
+
+        uvEventListener = new BandUVEventListener() {
+            @Override
+            public void onBandUVChanged(final BandUVEvent bandUVEvent) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            uvSensorItem.setSensorValue(String.format("Exposure: %d\nIndex: %s",bandUVEvent.getUVExposureToday(), bandUVEvent.getUVIndexLevel().toString()));
+                            ((BaseAdapter) sensorListView.getAdapter()).notifyDataSetChanged();
+                        } catch (Exception e) {}
+                    }
+                });
+            }
+        };
+
+        ambientLightEventListener = new BandAmbientLightEventListener() {
+            @Override
+            public void onBandAmbientLightChanged(final BandAmbientLightEvent bandAmbientLightEvent) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        ambientSensorItem.setSensorValue(String.format("Brightness: %d", bandAmbientLightEvent.getBrightness()));
+                        ((BaseAdapter) sensorListView.getAdapter()).notifyDataSetChanged();
+                    }
+                });
+            }
+        };
+
+        barometerEventListener = new BandBarometerEventListener() {
+            @Override
+            public void onBandBarometerChanged(final BandBarometerEvent bandBarometerEvent) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        barometerSensorItem.setSensorValue(String.format("Air Pressure: %f\nAir Temperature: %f", bandBarometerEvent.getAirPressure(), bandBarometerEvent.getTemperature()));
+                        ((BaseAdapter) sensorListView.getAdapter()).notifyDataSetChanged();
+                    }
+                });
+            }
+        };
+
+        contactState = new BandContactEventListener() {
+            @Override
+            public void onBandContactChanged(final BandContactEvent bandContactEvent) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        contactSensorItem.setSensorValue(bandContactEvent.getContactState().toString());
+                        ((BaseAdapter) sensorListView.getAdapter()).notifyDataSetChanged();
+                    }
+                });
+            }
+        };
+
+
         heartConsentListener = new HeartRateConsentListener() {
             @Override
             public void userAccepted(boolean b) {
@@ -613,9 +699,13 @@ public class ActionRecognitionActivity extends AppCompatActivity implements Hear
             new GsrSubscriptionTask().execute();
             new GyroSubscriptionTask().execute();
             new DistanceSubscriptionTask().execute();
+            new UVSubscriptionTask().execute();
+            new AmbientSubscriptionTask().execute();
+            new BarometerSubscriptionTask().execute();
+            new ContactSubscriptionTask().execute();
 
             // sensors which need user consent
-            new HrSubscriptionTask().execute();
+//            new HrSubscriptionTask().execute();
         }
     }
 
@@ -746,7 +836,7 @@ public class ActionRecognitionActivity extends AppCompatActivity implements Hear
         protected Void doInBackground(Void[] params) {
             try {
                 if (getConnectedBandClient()) {
-                    bandClient.getSensorManager().registerAccelerometerEventListener(accelerometerListener, SampleRate.MS16);
+                    bandClient.getSensorManager().registerAccelerometerEventListener(accelerometerListener, SampleRate.MS32);
                 } else {
                 }
             } catch (BandException e) {
@@ -777,7 +867,7 @@ public class ActionRecognitionActivity extends AppCompatActivity implements Hear
         protected Void doInBackground(Void[] params) {
             try {
                 if (getConnectedBandClient()) {
-                    bandClient.getSensorManager().registerGyroscopeEventListener(gyroListener, SampleRate.MS16);
+                    bandClient.getSensorManager().registerGyroscopeEventListener(gyroListener, SampleRate.MS32);
                 } else {
                 }
             } catch (BandException e) {
@@ -808,6 +898,50 @@ public class ActionRecognitionActivity extends AppCompatActivity implements Hear
         protected Void doInBackground(Void... params) {
             try {
                 bandClient.getSensorManager().registerDistanceEventListener(distanceListener);
+            } catch (Exception e) {
+            }
+            return null;
+        }
+    }
+
+    private class UVSubscriptionTask extends AsyncTask<Void, Void, Void> {
+        @Override
+        protected Void doInBackground(Void... params) {
+            try {
+                bandClient.getSensorManager().registerUVEventListener(uvEventListener);
+            } catch (Exception e) {
+            }
+            return null;
+        }
+    }
+
+    private class AmbientSubscriptionTask extends AsyncTask<Void, Void, Void> {
+        @Override
+        protected Void doInBackground(Void... params) {
+            try {
+                bandClient.getSensorManager().registerAmbientLightEventListener(ambientLightEventListener);
+            } catch (Exception e) {
+            }
+            return null;
+        }
+    }
+
+    private class BarometerSubscriptionTask extends AsyncTask<Void, Void, Void> {
+        @Override
+        protected Void doInBackground(Void... params) {
+            try {
+                bandClient.getSensorManager().registerBarometerEventListener(barometerEventListener);
+            } catch (Exception e) {
+            }
+            return null;
+        }
+    }
+
+    private class ContactSubscriptionTask extends AsyncTask<Void, Void, Void> {
+        @Override
+        protected Void doInBackground(Void... params) {
+            try {
+                bandClient.getSensorManager().registerContactEventListener(contactState);
             } catch (Exception e) {
             }
             return null;

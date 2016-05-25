@@ -10,6 +10,7 @@ import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.BaseAdapter;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
@@ -278,7 +279,7 @@ public class EmotionRecognitionActivity extends AppCompatActivity implements Hea
                     public void run() {
                         currentHeartRate = bandHeartRateEvent.getHeartRate();
                         movementSensorItems.get(0).setSensorValue("" + bandHeartRateEvent.getHeartRate());
-//                        ((BaseAdapter) sensorListView.getAdapter()).notifyDataSetChanged();
+                        ((BaseAdapter) sensorListView.getAdapter()).notifyDataSetChanged();
                     }
                 });
             }
@@ -296,7 +297,7 @@ public class EmotionRecognitionActivity extends AppCompatActivity implements Hea
                     public void run() {
                         currentRRInterval = bandRRIntervalEvent.getInterval();
                         movementSensorItems.get(2).setSensorValue("" + bandRRIntervalEvent.getInterval());
-//                        ((BaseAdapter) sensorListView.getAdapter()).notifyDataSetChanged();
+                        ((BaseAdapter) sensorListView.getAdapter()).notifyDataSetChanged();
                         addRrIntervalPointToGraph();
 
                         rrCounter++;
@@ -336,7 +337,7 @@ public class EmotionRecognitionActivity extends AppCompatActivity implements Hea
                     public void run() {
                         currentSkinTemperature = bandSkinTemperatureEvent.getTemperature();
                         movementSensorItems.get(3).setSensorValue("" + bandSkinTemperatureEvent.getTemperature());
-//                        ((BaseAdapter) sensorListView.getAdapter()).notifyDataSetChanged();
+                        ((BaseAdapter) sensorListView.getAdapter()).notifyDataSetChanged();
                     }
                 });
             }

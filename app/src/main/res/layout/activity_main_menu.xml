@@ -19,4 +19,14 @@
         android:id="@+id/btn_menu_emotion"
         android:layout_below="@+id/btn_menu_activity"
         android:layout_centerHorizontal="true" />
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/btn_menu_weather"
+        android:layout_below="@+id/btn_menu_emotion"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentEnd="true" />
 </RelativeLayout>

@@ -17,7 +17,7 @@
         <activity
             android:name=".ActionRecognitionActivity"
             android:label="@string/app_name"
-            android:theme="@style/AppTheme.NoActionBar"></activity>
+            android:theme="@style/AppTheme.NoActionBar" />
         <activity
             android:name=".DeviceInfoActivity"
             android:noHistory="true" />
@@ -32,11 +32,9 @@
         <activity
             android:name=".StartLabelingActivity"
             android:noHistory="true" />
-
-        <activity android:name=".MainMenuActivity">
+        <activity android:name=".MainMenuActivity" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
@@ -45,7 +43,13 @@
             android:name=".EmotionRecognitionActivity"
             android:label="@string/title_activity_emotion_recognition"
             android:noHistory="true"
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity
+            android:name=".Activityabbed"
+            android:label="@string/title_activity_activityabbed"
             android:theme="@style/AppTheme.NoActionBar"></activity>
+        <activity android:name=".WeatherActivity">
+        </activity>
     </application>
 
 </manifest>

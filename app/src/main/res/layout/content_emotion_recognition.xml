@@ -14,13 +14,14 @@
         android:id="@+id/list_view_sensors"
         android:layout_width="fill_parent"
         android:layout_height="fill_parent"
-        android:visibility="gone"
+        android:visibility="visible"
         android:layout_gravity="right|top" />
 
     <com.jjoe64.graphview.GraphView
         android:layout_width="match_parent"
         android:layout_height="200dip"
-        android:id="@+id/graph_emotion" />
+        android:id="@+id/graph_emotion"
+        android:visibility="gone"/>
 
     <TextView
         android:layout_width="match_parent"
@@ -44,7 +45,8 @@
         android:layout_height="128dip"
         android:layout_marginTop="210dip"
         android:layout_gravity="center_horizontal"
-        android:background="@drawable/neutral"/>
+        android:background="@drawable/neutral"
+        android:visibility="gone"/>
 
     <TextView
         android:id="@+id/text_emotion_state"
@@ -53,7 +55,8 @@
         android:textAppearance="@style/TextAppearance.AppCompat.Large"
         android:layout_marginTop="338dip"
         android:text="NEUTRAL"
-        android:layout_gravity="center_horizontal"/>
+        android:layout_gravity="center_horizontal"
+        android:visibility="gone"/>
 
     <com.jjoe64.graphview.GraphView
         android:layout_width="match_parent"

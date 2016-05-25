@@ -11,10 +11,17 @@
     tools:context=".ActionRecognitionActivity"
     tools:showIn="@layout/activity_main">
 
+    <ListView
+        android:id="@+id/list_view_sensors"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:visibility="visible"
+        android:layout_gravity="right|top" />
 
     <com.jjoe64.graphview.GraphView
         android:layout_width="match_parent"
         android:layout_height="200dip"
+        android:visibility="gone"
         android:id="@+id/graph" />
 
     <ImageView
@@ -22,6 +29,7 @@
         android:layout_width="128dip"
         android:layout_height="128dip"
         android:layout_gravity="center"
+        android:visibility="gone"
         android:background="@drawable/asidle" />
 
     <TextView
@@ -31,6 +39,7 @@
         android:textAppearance="@style/TextAppearance.AppCompat.Large"
         android:layout_marginTop="340dip"
         android:text="NEUTRAL"
+        android:visibility="gone"
         android:layout_gravity="center_horizontal"/>
 
     <com.github.clans.fab.FloatingActionMenu
@@ -41,7 +50,8 @@
         fab:menu_labels_showAnimation="@anim/fab_slide_in_from_right"
         fab:menu_labels_hideAnimation="@anim/fab_slide_out_to_right"
         fab:menu_colorNormal="#48ac9d"
-        android:id="@+id/fab_menu">
+        android:id="@+id/fab_menu"
+        android:visibility="gone">
         <com.github.clans.fab.FloatingActionButton
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
