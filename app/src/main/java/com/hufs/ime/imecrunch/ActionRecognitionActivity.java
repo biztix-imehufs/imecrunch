@@ -11,6 +11,7 @@ import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -460,6 +461,7 @@ public class ActionRecognitionActivity extends AppCompatActivity implements Hear
         gyroListener = new BandGyroscopeEventListener() {
             @Override
             public void onBandGyroscopeChanged(final BandGyroscopeEvent bandGyroscopeEvent) {
+                Log.d("SA-CRUNCH", String.valueOf(bandGyroscopeEvent.getAngularVelocityX()));
 
                 gyroAngularXList.add(new Double(bandGyroscopeEvent.getAngularVelocityX()));
                 gyroAngularYList.add(new Double(bandGyroscopeEvent.getAngularVelocityY()));
