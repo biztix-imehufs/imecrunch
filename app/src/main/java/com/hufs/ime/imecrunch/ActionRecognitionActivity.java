@@ -2,9 +2,14 @@ package com.hufs.ime.imecrunch;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -65,7 +70,7 @@ import listview.MovementSensorItem;
 import listview.MovementSensorListAdapter;
 
 
-public class ActionRecognitionActivity extends AppCompatActivity implements HeartRateConsentListener {
+public class ActionRecognitionActivity extends AppCompatActivity implements HeartRateConsentListener, SensorEventListener {
     public static BandInfo[] pairedBands;
     private BandClient bandClient;
     private BandPendingResult<ConnectionState> pendingResult;
@@ -94,6 +99,9 @@ public class ActionRecognitionActivity extends AppCompatActivity implements Hear
     public static String fwVersion;
     public static String hwVersion;
 
+    /***
+     * Wearable sensors
+     */
     private BandHeartRateEventListener hearListener;
     private HeartRateConsentListener heartConsentListener;
     private BandAccelerometerEventListener accelerometerListener;
@@ -105,10 +113,19 @@ public class ActionRecognitionActivity extends AppCompatActivity implements Hear
     private BandBarometerEventListener barometerEventListener;
     private BandContactEventListener contactState;
 
+    /**
+     * Mobile sensors
+     */
+    private SensorManager mSensorManager;
+    private Sensor mAccelerometer, mGyroscope, mMagnetometer;
+
     public static double[] currentAccelerometer = new double[3];
     private double[] currentGyroAccel = new double[3];
     private double[] currentGyroAngularVelocity = new double[3];
     private double[] currentGyroAcceleration = new double[3];
+    private double[] currentMAccelerometer = new double[3];
+    private double[] currentMGyroscope = new double[3];
+    private double[] currentMMagnetometer = new double[3];
 
     private ArrayList<Double> accelXList = new ArrayList<>();
     private ArrayList<Double> accelYList = new ArrayList<>();
@@ -229,7 +246,10 @@ public class ActionRecognitionActivity extends AppCompatActivity implements Hear
     }
 
     Timer updateSensorTimer, writeCSVTimer;
+    // Wearable
     MovementSensorItem accelSensorItem, gyroSensorItem, s3, uvSensorItem, ambientSensorItem, barometerSensorItem, contactSensorItem;
+    // Mobile
+    MovementSensorItem mAccelSensorItem, mGyroSensorItem, mMagnetoSensorItem;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -258,6 +278,9 @@ public class ActionRecognitionActivity extends AppCompatActivity implements Hear
         ambientSensorItem = new MovementSensorItem();
         s3 = new MovementSensorItem();
         barometerSensorItem = new MovementSensorItem();
+        mAccelSensorItem = new MovementSensorItem();
+        mGyroSensorItem = new MovementSensorItem();
+        mMagnetoSensorItem = new MovementSensorItem();
 
         contactSensorItem.setSensorName("Sensor Contact Status");
         contactSensorItem.setSensorValue("-");
@@ -287,6 +310,17 @@ public class ActionRecognitionActivity extends AppCompatActivity implements Hear
         barometerSensorItem.setSensorValue("-");
         movementSensorItems.add(barometerSensorItem);
 
+        mAccelSensorItem.setSensorName("Mobile Accelerometer");
+        mAccelSensorItem.setSensorValue("-");
+        movementSensorItems.add(mAccelSensorItem);
+
+        mGyroSensorItem.setSensorName("Mobile Gyroscope");
+        mGyroSensorItem.setSensorValue("-");
+        movementSensorItems.add(mGyroSensorItem);
+
+        mMagnetoSensorItem.setSensorName("Mobile Magnetometer");
+        mMagnetoSensorItem.setSensorValue("-");
+        movementSensorItems.add(mMagnetoSensorItem);
 
         final ListView sensorListView = (ListView) findViewById(R.id.list_view_sensors);
         sensorListView.setAdapter(new MovementSensorListAdapter(this, movementSensorItems));
@@ -370,16 +404,6 @@ public class ActionRecognitionActivity extends AppCompatActivity implements Hear
                     String status = android.os.Environment.getExternalStorageState();
                     String fileName = "action.csv";
 
-
-                    switch (labelType) {
-                        case "WALKING":
-                            // textLabelType.setText("Walking");
-                            //fileName = "walking.csv";
-                            break;
-                        case "RUNNING":
-                            //fileName = "running.csv";
-                            break;
-                    }
                     final String filePath = baseDir + File.separator + fileName;
                     f = new File(filePath);
 
@@ -403,9 +427,11 @@ public class ActionRecognitionActivity extends AppCompatActivity implements Hear
                      * ACTUAL CSV WRITING
                      */
                     String[] row = {new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date()),
+                            String.format("%.4f", currentMAccelerometer[0]), String.format("%.4f", currentMAccelerometer[1]), String.format("%.4f", currentMAccelerometer[2]),
+                            String.format("%.4f", currentMGyroscope[0]), String.format("%.4f", currentMGyroscope[1]), String.format("%.4f", currentMGyroscope[2]),
+                            String.format("%.4f", currentMMagnetometer[0]), String.format("%.4f", currentMMagnetometer[1]), String.format("%.4f", currentMMagnetometer[2]),
                             String.format("%.4f", currentAccelerometer[0]), String.format("%.4f", currentAccelerometer[1]), String.format("%.4f", currentAccelerometer[2]),
                             String.format("%.4f", currentGyroAngularVelocity[0]), String.format("%.4f", currentGyroAngularVelocity[1]), String.format("%.4f", currentGyroAngularVelocity[2]),
-                            String.format("%.4f", currentGyroAccel[0]), String.format("%.4f", currentGyroAccel[1]), String.format("%.4f", currentGyroAccel[2]),
                             labelType};
                     csvWriter.writeNext(row);
                     try {
@@ -540,17 +566,10 @@ public class ActionRecognitionActivity extends AppCompatActivity implements Hear
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-//                        movementSensorItems.get(1).setSensorValue(String.format("Angular Velocity\nX: %f\nY: %f\nZ: %f\n\nAcceleration\nX: %f\nY: %f\nZ: %f",
-//                                currentGyroAngularVelocity[0], currentGyroAngularVelocity[1], currentGyroAngularVelocity[2],
-//                                currentGyroAccel[0], currentGyroAccel[1], currentGyroAccel[2]));
-                        gyroSensorItem.setSensorValue(String.format("Angular Velocity\nX: %f\nY: %f\nZ: %f\n\nAcceleration\nX: %f\nY: %f\nZ: %f",
-                                currentGyroAngularVelocity[0], currentGyroAngularVelocity[1], currentGyroAngularVelocity[2],
-                                currentGyroAccel[0], currentGyroAccel[1], currentGyroAccel[2]));
-                        ((BaseAdapter) sensorListView.getAdapter()).notifyDataSetChanged();
-
-                        currentGyroAngularVelocity[0] = bandGyroscopeEvent.getAngularVelocityX();
-                        currentGyroAngularVelocity[1] = bandGyroscopeEvent.getAngularVelocityY();
-                        currentGyroAngularVelocity[2] = bandGyroscopeEvent.getAngularVelocityZ();
+                        double PI = 3.14;
+                        currentGyroAngularVelocity[0] = (bandGyroscopeEvent.getAngularVelocityX()*PI)/180;
+                        currentGyroAngularVelocity[1] = (bandGyroscopeEvent.getAngularVelocityY()*PI)/180;
+                        currentGyroAngularVelocity[2] = (bandGyroscopeEvent.getAngularVelocityZ()*PI)/180;
                         addGyroAngularPointToGraph();
 
 
@@ -580,6 +599,11 @@ public class ActionRecognitionActivity extends AppCompatActivity implements Hear
                             vxCounter++;
                             totalVx += Math.abs(bandGyroscopeEvent.getAngularVelocityZ());
                         }
+
+                        gyroSensorItem.setSensorValue(String.format("Angular Velocity\nX: %f\nY: %f\nZ: %f\n\nAcceleration\nX: %f\nY: %f\nZ: %f",
+                                currentGyroAngularVelocity[0], currentGyroAngularVelocity[1], currentGyroAngularVelocity[2],
+                                currentGyroAccel[0], currentGyroAccel[1], currentGyroAccel[2]));
+                        ((BaseAdapter) sensorListView.getAdapter()).notifyDataSetChanged();
                     }
                 });
             }
@@ -703,11 +727,21 @@ public class ActionRecognitionActivity extends AppCompatActivity implements Hear
             new AmbientSubscriptionTask().execute();
             new BarometerSubscriptionTask().execute();
             new ContactSubscriptionTask().execute();
-
             // sensors which need user consent
 //            new HrSubscriptionTask().execute();
+
+            mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+            mAccelerometer = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+            mGyroscope = mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
+            mMagnetometer = mSensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
+
+            mSensorManager.registerListener(this, mAccelerometer, SensorManager.SENSOR_DELAY_NORMAL);
+            mSensorManager.registerListener(this, mGyroscope, SensorManager.SENSOR_DELAY_NORMAL);
+            mSensorManager.registerListener(this, mMagnetometer, SensorManager.SENSOR_DELAY_NORMAL);
         }
     }
+
+
 
     public void userAccepted(boolean consentGiven) {
 
@@ -812,6 +846,8 @@ public class ActionRecognitionActivity extends AppCompatActivity implements Hear
                 bandClient.getSensorManager().unregisterAccelerometerEventListener(accelerometerListener);
                 bandClient.getSensorManager().unregisterGyroscopeEventListener(gyroListener);
                 bandClient.disconnect().await();
+
+                mSensorManager.unregisterListener(this);
             } catch (InterruptedException e) {
                 // Do nothing as this is happening during destroy
             } catch (BandException e) {
@@ -829,6 +865,34 @@ public class ActionRecognitionActivity extends AppCompatActivity implements Hear
         updateSensorTimer.cancel();
         writeCSVTimer.cancel();
         super.onBackPressed();
+    }
+
+    @Override
+    public void onSensorChanged(SensorEvent event) {
+        Sensor sensor = event.sensor;
+        if (sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
+            mAccelSensorItem.setSensorValue(String.format("X: %f\nY: %f\nZ: %f", event.values[0], event.values[1], event.values[2]));
+            currentMAccelerometer[0] = event.values[0];
+            currentMAccelerometer[1] = event.values[1];
+            currentMAccelerometer[2] = event.values[2];
+        }
+        if (sensor.getType() == Sensor.TYPE_GYROSCOPE) {
+            mGyroSensorItem.setSensorValue(String.format("X: %f\nY: %f\nZ: %f", event.values[0], event.values[1], event.values[2]));
+            currentMGyroscope[0] = event.values[0];
+            currentMGyroscope[1] = event.values[1];
+            currentMGyroscope[2] = event.values[2];
+        }
+        if (sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD) {
+            mMagnetoSensorItem.setSensorValue(String.format("X: %f\nY: %f\nZ: %f", event.values[0], event.values[1], event.values[2]));
+            currentMMagnetometer[0] = event.values[0];
+            currentMMagnetometer[1] = event.values[1];
+            currentMMagnetometer[2] = event.values[2];
+        }
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+
     }
 
     private class AccelerometerSubscriptionTask extends AsyncTask<Void, Void, Void> {

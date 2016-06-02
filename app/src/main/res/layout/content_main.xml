@@ -51,7 +51,7 @@
         fab:menu_labels_hideAnimation="@anim/fab_slide_out_to_right"
         fab:menu_colorNormal="#48ac9d"
         android:id="@+id/fab_menu"
-        android:visibility="gone">
+        android:visibility="visible">
         <com.github.clans.fab.FloatingActionButton
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
